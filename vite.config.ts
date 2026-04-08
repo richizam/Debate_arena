@@ -5,7 +5,7 @@ const removeModuleType = {
   name: "remove-module-type",
   transformIndexHtml(html: string) {
     return html
-      .replace(/type="module" /g, "")
+      .replace(/type="module" /g, "defer ")
       .replace(/ crossorigin/g, "");
   },
 };
