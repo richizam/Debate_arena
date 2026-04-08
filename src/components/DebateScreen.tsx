@@ -47,7 +47,7 @@ export default function DebateScreen({ battle, onComplete, t }: DebateScreenProp
             activeSpeaker === "a" ? "debate-portrait--active" : "debate-portrait--inactive"
           )}
         >
-          <img src="/images/player_1.png" alt={fighterA.name} />
+          <img src="./images/player_1.png" alt={fighterA.name} />
           <SpeakerBadge name={fighterA.name} speakerId="a" />
         </div>
 
@@ -58,7 +58,7 @@ export default function DebateScreen({ battle, onComplete, t }: DebateScreenProp
             activeSpeaker === "b" ? "debate-portrait--active" : "debate-portrait--inactive"
           )}
         >
-          <img src="/images/player_2.png" alt={fighterB.name} />
+          <img src="./images/player_2.png" alt={fighterB.name} />
           <SpeakerBadge name={fighterB.name} speakerId="b" />
         </div>
       </div>

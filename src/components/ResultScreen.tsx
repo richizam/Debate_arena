@@ -14,13 +14,13 @@ export default function ResultScreen({ battle, onRestart, t }: ResultScreenProps
   const [voteSubmitting, setVoteSubmitting] = useState(false);
 
   const winner = battle.fighters.find((f) => f.id === battle.judge.winner)!;
-  const winnerPortrait = battle.judge.winner === "a" ? "/images/player_1.png" : "/images/player_2.png";
+  const winnerPortrait = battle.judge.winner === "a" ? "./images/player_1.png" : "./images/player_2.png";
 
   async function handleVote(choice: SpeakerId) {
     if (voted || voteSubmitting) return;
     setVoteSubmitting(true);
     try {
-      await fetch("/api/vote", {
+      await fetch("https://debate-arena-492.pages.dev/api/vote", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

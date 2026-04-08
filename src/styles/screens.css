@@ -8,7 +8,7 @@
 }
 
 .intro-screen .screen-bg {
-  background-image: url("/images/debate_arena_main.jpg");
+  background-image: url("../images/debate_arena_main.jpg");
 }
 
 .intro-content {
@@ -228,7 +228,7 @@
 }
 
 .vs-screen .screen-bg {
-  background-image: url("/images/versus_page.jpg");
+  background-image: url("../images/versus_page.jpg");
 }
 
 .vs-overlay {
@@ -289,7 +289,7 @@
 }
 
 .debate-screen .screen-bg {
-  background-image: url("/images/debate_arena_main.jpg");
+  background-image: url("../images/debate_arena_main.jpg");
 }
 
 .debate-overlay {
@@ -408,7 +408,7 @@
 }
 
 .judge-screen .screen-bg {
-  background-image: url("/images/debate_arena_main.jpg");
+  background-image: url("../images/debate_arena_main.jpg");
 }
 
 .judge-overlay {
@@ -508,7 +508,7 @@
 }
 
 .result-screen .screen-bg {
-  background-image: url("/images/results_debate_arena.jpg");
+  background-image: url("../images/results_debate_arena.jpg");
 }
 
 .result-overlay {
@@ -651,7 +651,7 @@
 }
 
 .limit-screen .screen-bg {
-  background-image: url("/images/debate_arena_main.jpg");
+  background-image: url("../images/debate_arena_main.jpg");
   filter: brightness(0.4);
 }
 

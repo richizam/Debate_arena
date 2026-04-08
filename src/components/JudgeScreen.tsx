@@ -17,7 +17,7 @@ export default function JudgeScreen({ verdict, winnerName, onContinue, t }: Judg
 
       <div className="judge-content">
         <div className="judge-portrait-wrap">
-          <img src="/images/judge.png" alt="Judge" />
+          <img src="./images/judge.png" alt="Judge" />
         </div>
 
         <h2 className="judge-title">{t.judgesVerdict}</h2>
