@@ -640,3 +640,69 @@
   .judge-title { font-size: 11px; }
   .judge-winner { font-size: 14px; }
 }
+
+/* ============================================================
+   LIMIT SCREEN
+   ============================================================ */
+.limit-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.limit-screen .screen-bg {
+  background-image: url("/images/debate_arena_main.jpg");
+  filter: brightness(0.4);
+}
+
+.limit-content {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-ui);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--gap-md);
+  padding: var(--gap-lg);
+  text-align: center;
+}
+
+.limit-title {
+  font-family: var(--font-pixel);
+  font-size: 22px;
+  color: var(--color-magenta);
+  text-shadow: 0 0 16px var(--color-magenta);
+  margin: 0;
+}
+
+.limit-subtitle {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: var(--color-fg);
+  margin: 0;
+  line-height: 1.8;
+}
+
+.limit-come-back {
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: #aaa;
+  margin: 0;
+  line-height: 1.8;
+}
+
+.limit-or {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: var(--color-cyan);
+  margin: var(--gap-sm) 0;
+}
+
+.limit-buy-link {
+  text-decoration: none;
+}
+
+.limit-back {
+  margin-top: var(--gap-sm);
+}

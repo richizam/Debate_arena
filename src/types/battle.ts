@@ -23,6 +23,6 @@ export interface Battle {
   judge: JudgeVerdict;
 }
 
-export type GamePhase = "intro" | "loading" | "vs" | "debate" | "judge" | "result";
+export type GamePhase = "intro" | "loading" | "vs" | "debate" | "judge" | "result" | "limit";
 
 export type Language = "en" | "es" | "de" | "fr" | "ru";

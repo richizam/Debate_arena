@@ -10,6 +10,8 @@ import VsScreen from "./components/VsScreen";
 import DebateScreen from "./components/DebateScreen";
 import JudgeScreen from "./components/JudgeScreen";
 import ResultScreen from "./components/ResultScreen";
+import LimitScreen from "./components/LimitScreen";
+import { hasUsedDailyDebate, markDailyDebateUsed } from "./utils/dailyLimit";
 
 import "./styles/reset.css";
 import "./styles/variables.css";
@@ -31,13 +33,19 @@ export default function App() {
     abortRef.current.abort();
     abortRef.current = new AbortController();
 
+    if (hasUsedDailyDebate()) {
+      setLanguage(lang);
+      setPhase("limit");
+      return;
+    }
+
     setLanguage(lang);
     setIsLoading(true);
     setBattle(null);
     setVerdict(null);
 
     try {
-      const res = await fetch("/api/start-battle", {
+      const res = await fetch("https://debate-arena-492.pages.dev/api/start-battle", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -53,6 +61,7 @@ export default function App() {
 
       const raw: unknown = await res.json();
       const normalized = normalizeBattle(raw);
+      markDailyDebateUsed();
       setBattle(normalized);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") {
@@ -76,6 +85,8 @@ export default function App() {
 
   const handleJudgeContinue = useCallback(() => setPhase("result"), []);
 
+  const handleLimitBack = useCallback(() => setPhase("intro"), []);
+
   const handleRestart = useCallback(() => {
     abortRef.current.abort();
     abortRef.current = new AbortController();
@@ -89,6 +100,10 @@ export default function App() {
     <>
       <div className={cn("screen", phase === "intro" && "active")}>
         <IntroScreen onStart={handleStart} isLoading={isLoading} />
+      </div>
+
+      <div className={cn("screen", phase === "limit" && "active")}>
+        <LimitScreen onBack={handleLimitBack} t={t} />
       </div>
 
       {battle && (

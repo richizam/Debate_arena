@@ -33,6 +33,12 @@ export interface Translations {
   vote: string;
   votedFor: string;
   rematch: string;
+  limitTitle: string;
+  limitSubtitle: string;
+  limitComeBack: string;
+  limitOr: string;
+  limitBuy: string;
+  limitBack: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -53,6 +59,12 @@ export const translations: Record<Language, Translations> = {
     vote: "Vote",
     votedFor: "Voted for",
     rematch: "REMATCH",
+    limitTitle: "DAILY LIMIT REACHED",
+    limitSubtitle: "You've used your free debate for today.",
+    limitComeBack: "Come back tomorrow for another free debate.",
+    limitOr: "— OR —",
+    limitBuy: "BUY 100 DEBATES — $3.99",
+    limitBack: "BACK",
   },
   es: {
     epicDebateBattle: "Gran Debate",
@@ -71,6 +83,12 @@ export const translations: Record<Language, Translations> = {
     vote: "Votar por",
     votedFor: "Votaste por",
     rematch: "REVANCHA",
+    limitTitle: "LÍMITE DIARIO ALCANZADO",
+    limitSubtitle: "Ya usaste tu debate gratuito de hoy.",
+    limitComeBack: "Vuelve mañana para otro debate gratis.",
+    limitOr: "— O —",
+    limitBuy: "COMPRAR 100 DEBATES — $3.99",
+    limitBack: "VOLVER",
   },
   de: {
     epicDebateBattle: "Epische Debatte",
@@ -89,6 +107,12 @@ export const translations: Record<Language, Translations> = {
     vote: "Abstimmen für",
     votedFor: "Abgestimmt für",
     rematch: "REVANCHE",
+    limitTitle: "TAGESLIMIT ERREICHT",
+    limitSubtitle: "Du hast dein kostenloses Debate für heute verwendet.",
+    limitComeBack: "Komm morgen für ein weiteres kostenloses Debate zurück.",
+    limitOr: "— ODER —",
+    limitBuy: "100 DEBATTEN KAUFEN — $3.99",
+    limitBack: "ZURÜCK",
   },
   fr: {
     epicDebateBattle: "Grand Débat",
@@ -107,6 +131,12 @@ export const translations: Record<Language, Translations> = {
     vote: "Voter pour",
     votedFor: "Vous avez voté pour",
     rematch: "REVANCHE",
+    limitTitle: "LIMITE QUOTIDIENNE ATTEINTE",
+    limitSubtitle: "Vous avez utilisé votre débat gratuit pour aujourd'hui.",
+    limitComeBack: "Revenez demain pour un autre débat gratuit.",
+    limitOr: "— OU —",
+    limitBuy: "ACHETER 100 DÉBATS — 3,99 $",
+    limitBack: "RETOUR",
   },
   ru: {
     epicDebateBattle: "Эпический Дебат",
@@ -125,5 +155,11 @@ export const translations: Record<Language, Translations> = {
     vote: "Голосовать за",
     votedFor: "Проголосовали за",
     rematch: "РЕВАНШ",
+    limitTitle: "ДНЕВНОЙ ЛИМИТ ИСЧЕРПАН",
+    limitSubtitle: "Вы использовали бесплатный дебат на сегодня.",
+    limitComeBack: "Возвращайтесь завтра за новым бесплатным дебатом.",
+    limitOr: "— ИЛИ —",
+    limitBuy: "КУПИТЬ 100 ДЕБАТОВ — $3.99",
+    limitBack: "НАЗАД",
   },
 };
