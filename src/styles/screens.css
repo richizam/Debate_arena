@@ -706,3 +706,27 @@
 .limit-back {
   margin-top: var(--gap-sm);
 }
+
+.limit-coming-soon {
+  border: 2px solid var(--color-cyan);
+  box-shadow: 0 0 12px var(--color-cyan);
+  padding: var(--gap-md) var(--gap-lg);
+  text-align: center;
+  margin: var(--gap-sm) 0;
+}
+
+.limit-coming-soon-label {
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  color: var(--color-cyan);
+  text-shadow: 0 0 10px var(--color-cyan);
+  margin: 0 0 var(--gap-sm);
+}
+
+.limit-coming-soon-desc {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: #aaa;
+  margin: 0;
+  line-height: 1.8;
+}

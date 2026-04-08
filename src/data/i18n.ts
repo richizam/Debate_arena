@@ -39,6 +39,8 @@ export interface Translations {
   limitOr: string;
   limitBuy: string;
   limitBack: string;
+  limitComingSoon: string;
+  limitComingSoonDesc: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -65,6 +67,8 @@ export const translations: Record<Language, Translations> = {
     limitOr: "— OR —",
     limitBuy: "BUY 100 DEBATES — $3.99",
     limitBack: "BACK",
+    limitComingSoon: "⚡ FULL PACK — COMING SOON ⚡",
+    limitComingSoonDesc: "Unlimited debates. No daily limit. Stay tuned.",
   },
   es: {
     epicDebateBattle: "Gran Debate",
@@ -89,6 +93,8 @@ export const translations: Record<Language, Translations> = {
     limitOr: "— O —",
     limitBuy: "COMPRAR 100 DEBATES — $3.99",
     limitBack: "VOLVER",
+    limitComingSoon: "⚡ PACK COMPLETO — PRÓXIMAMENTE ⚡",
+    limitComingSoonDesc: "Debates ilimitados. Sin límite diario. Muy pronto.",
   },
   de: {
     epicDebateBattle: "Epische Debatte",
@@ -113,6 +119,8 @@ export const translations: Record<Language, Translations> = {
     limitOr: "— ODER —",
     limitBuy: "100 DEBATTEN KAUFEN — $3.99",
     limitBack: "ZURÜCK",
+    limitComingSoon: "⚡ VOLLPAKET — DEMNÄCHST ⚡",
+    limitComingSoonDesc: "Unbegrenzte Debatten. Kein Tageslimit. Bald verfügbar.",
   },
   fr: {
     epicDebateBattle: "Grand Débat",
@@ -137,6 +145,8 @@ export const translations: Record<Language, Translations> = {
     limitOr: "— OU —",
     limitBuy: "ACHETER 100 DÉBATS — 3,99 $",
     limitBack: "RETOUR",
+    limitComingSoon: "⚡ PACK COMPLET — BIENTÔT ⚡",
+    limitComingSoonDesc: "Débats illimités. Sans limite quotidienne. Bientôt disponible.",
   },
   ru: {
     epicDebateBattle: "Эпический Дебат",
@@ -161,5 +171,7 @@ export const translations: Record<Language, Translations> = {
     limitOr: "— ИЛИ —",
     limitBuy: "КУПИТЬ 100 ДЕБАТОВ — $3.99",
     limitBack: "НАЗАД",
+    limitComingSoon: "⚡ ПОЛНЫЙ ПАКЕТ — СКОРО ⚡",
+    limitComingSoonDesc: "Неограниченные дебаты. Без дневного лимита. Скоро.",
   },
 };
