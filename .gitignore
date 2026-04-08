@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Secret environment files (NEVER commit these)
+.dev.vars
+.env
+.env.local
+.env.*.local
+
+# Wrangler local state
+.wrangler/
+
+# Claude Code project files
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,65 @@
+:root {
+  /* Neon palette */
+  --cyan:         #00f0ff;
+  --cyan-dim:     #00a0aa;
+  --magenta:      #ff00ff;
+  --neon-purple:  #8800ff;
+  --hot-pink:     #ff2080;
+  --neon-yellow:  #ffe600;
+
+  /* Backgrounds */
+  --bg-dark:      #04040f;
+  --bg-panel:     rgba(8, 8, 28, 0.88);
+  --bg-dialogue:  rgba(4, 4, 18, 0.94);
+  --overlay-dark: rgba(0, 0, 10, 0.55);
+
+  /* Text */
+  --text-primary: #dde0ff;
+  --text-dim:     #7788aa;
+  --text-white:   #ffffff;
+
+  /* Fighter-specific colors */
+  --fighter-a:       #ff4444;
+  --fighter-a-glow:  rgba(255, 68, 68, 0.7);
+  --fighter-b:       #44aaff;
+  --fighter-b-glow:  rgba(68, 170, 255, 0.7);
+
+  /* Glow box-shadows */
+  --glow-cyan:      0 0 8px rgba(0, 240, 255, 0.8), 0 0 24px rgba(0, 240, 255, 0.3);
+  --glow-magenta:   0 0 8px rgba(255, 0, 255, 0.8), 0 0 24px rgba(255, 0, 255, 0.3);
+  --glow-a:         0 0 12px rgba(255, 68, 68, 0.8), 0 0 32px rgba(255, 68, 68, 0.3);
+  --glow-b:         0 0 12px rgba(68, 170, 255, 0.8), 0 0 32px rgba(68, 170, 255, 0.3);
+
+  /* Text shadows */
+  --text-glow-cyan:    0 0 6px rgba(0, 240, 255, 1), 0 0 20px rgba(0, 240, 255, 0.5);
+  --text-glow-magenta: 0 0 6px rgba(255, 0, 255, 1), 0 0 20px rgba(255, 0, 255, 0.5);
+  --text-glow-a:       0 0 6px rgba(255, 80, 80, 1), 0 0 20px rgba(255, 68, 68, 0.5);
+  --text-glow-b:       0 0 6px rgba(100, 180, 255, 1), 0 0 20px rgba(68, 170, 255, 0.5);
+
+  /* Typography */
+  --font-pixel: "Press Start 2P", monospace;
+  --font-body:  "Courier New", "Consolas", monospace;
+
+  /* Spacing */
+  --gap-xs: 4px;
+  --gap-sm: 8px;
+  --gap-md: 16px;
+  --gap-lg: 32px;
+  --gap-xl: 48px;
+
+  /* Border */
+  --border-cyan:    2px solid var(--cyan);
+  --border-magenta: 2px solid var(--magenta);
+
+  /* Transitions */
+  --t-fast: 200ms ease;
+  --t-mid:  400ms ease;
+  --t-slow: 700ms ease;
+
+  /* Z-layers */
+  --z-bg:       0;
+  --z-overlay:  1;
+  --z-portraits: 10;
+  --z-ui:       20;
+  --z-dialogue: 30;
+}
