@@ -190,32 +190,34 @@ export default function BillingPanel({
         </div>
       ) : (
         <div className="billing-panel__signin">
-          <div className="billing-panel__tabs">
-            <button
-              type="button"
-              className={`billing-panel__tab${authMode === "signin" ? " billing-panel__tab--active" : ""}`}
-              onClick={() => onAuthModeChange("signin")}
-              disabled={isAuthLoading || isAuthSubmitting}
-            >
-              {t.signInAction}
-            </button>
-            <button
-              type="button"
-              className={`billing-panel__tab${authMode === "signup" ? " billing-panel__tab--active" : ""}`}
-              onClick={() => onAuthModeChange("signup")}
-              disabled={isAuthLoading || isAuthSubmitting}
-            >
-              {t.createAccountAction}
-            </button>
-            <button
-              type="button"
-              className={`billing-panel__tab${authMode === "reset" ? " billing-panel__tab--active" : ""}`}
-              onClick={() => onAuthModeChange("reset")}
-              disabled={isAuthLoading || isAuthSubmitting}
-            >
-              {t.forgotPassword}
-            </button>
-          </div>
+          {authMode !== "update-password" ? (
+            <div className="billing-panel__tabs">
+              <button
+                type="button"
+                className={`billing-panel__tab${authMode === "signin" ? " billing-panel__tab--active" : ""}`}
+                onClick={() => onAuthModeChange("signin")}
+                disabled={isAuthLoading || isAuthSubmitting}
+              >
+                {t.signInAction}
+              </button>
+              <button
+                type="button"
+                className={`billing-panel__tab${authMode === "signup" ? " billing-panel__tab--active" : ""}`}
+                onClick={() => onAuthModeChange("signup")}
+                disabled={isAuthLoading || isAuthSubmitting}
+              >
+                {t.createAccountAction}
+              </button>
+              <button
+                type="button"
+                className={`billing-panel__tab${authMode === "reset" ? " billing-panel__tab--active" : ""}`}
+                onClick={() => onAuthModeChange("reset")}
+                disabled={isAuthLoading || isAuthSubmitting}
+              >
+                {t.forgotPassword}
+              </button>
+            </div>
+          ) : null}
 
           {showEmailField && (
             <>

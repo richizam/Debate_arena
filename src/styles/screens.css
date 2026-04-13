@@ -218,6 +218,77 @@
   50% { opacity: 0; }
 }
 
+.auth-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.auth-screen .screen-bg {
+  background-image: url("../images/debate_arena_main.jpg");
+  filter: brightness(0.5);
+}
+
+.auth-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-overlay);
+  background: rgba(2, 4, 18, 0.72);
+}
+
+.auth-content {
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-ui);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: calc(var(--gap-xl) * 1.5) var(--gap-lg) var(--gap-lg);
+}
+
+.auth-card {
+  width: min(960px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+}
+
+.auth-card__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+  text-align: center;
+}
+
+.auth-card__eyebrow,
+.auth-card__title,
+.auth-card__subtitle {
+  margin: 0;
+}
+
+.auth-card__eyebrow {
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  color: var(--text-dim);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.auth-card__title {
+  font-family: var(--font-pixel);
+  font-size: 18px;
+  color: var(--text-white);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.auth-card__subtitle {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
 .billing-panel {
   width: min(920px, 100%);
   display: flex;
@@ -824,11 +895,14 @@
   .vs-names { padding: 0 5%; }
   .vs-name { font-size: 11px; }
   .intro-content { padding: var(--gap-lg) var(--gap-md); }
+  .auth-content { padding: calc(var(--gap-xl) * 1.2) var(--gap-md) var(--gap-md); }
+  .auth-card__title { font-size: 14px; }
   .billing-panel { padding: var(--gap-sm); }
   .billing-panel__signin-row,
   .billing-panel__actions,
   .billing-panel__plans,
-  .billing-panel__stats { flex-direction: column; }
+  .billing-panel__stats,
+  .limit-actions { flex-direction: column; }
   .billing-plan,
   .billing-stat,
   .billing-panel__input { min-width: 0; width: 100%; }
@@ -906,6 +980,13 @@
 
 .limit-back {
   margin-top: var(--gap-sm);
+}
+
+.limit-actions {
+  display: flex;
+  gap: var(--gap-md);
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .limit-coming-soon {

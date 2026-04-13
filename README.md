@@ -123,6 +123,14 @@ Full stack with Pages Functions:
 npm run pages:dev
 ```
 
+Auth and billing routes in the client:
+
+- `/login`
+- `/signup`
+- `/forgot-password`
+- `/reset-password`
+- `/account`
+
 ## Build
 
 ```bash

@@ -14,6 +14,58 @@
   pointer-events: auto;
 }
 
+.screen--hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-auth-nav {
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 60;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.app-auth-nav__link {
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 240, 255, 0.24);
+  background: rgba(6, 8, 26, 0.82);
+  color: var(--text-primary);
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast), box-shadow var(--t-fast);
+}
+
+.app-auth-nav__link:hover {
+  border-color: var(--cyan);
+  color: var(--text-white);
+  box-shadow: var(--glow-cyan);
+}
+
+.app-auth-nav__link--primary {
+  color: var(--cyan);
+}
+
+@media (max-width: 768px) {
+  .app-auth-nav {
+    top: 12px;
+    right: 12px;
+    left: 12px;
+  }
+
+  .app-auth-nav__link {
+    flex: 1 1 auto;
+    text-align: center;
+  }
+}
+
 /* Full-bleed background image layer */
 .screen-bg {
   position: absolute;

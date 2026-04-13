@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import type { GamePhase, Battle, JudgeVerdict, Language } from "./types/battle";
 import type { BillingStatusResponse, PlanCode } from "./types/billing";
@@ -11,6 +11,7 @@ import { hasUsedDailyDebate, markDailyDebateUsed } from "./utils/dailyLimit";
 import { hasSupabaseAuthConfig, supabase } from "./utils/supabase";
 
 import IntroScreen from "./components/IntroScreen";
+import AuthPage from "./components/AuthPage";
 import VsScreen from "./components/VsScreen";
 import DebateScreen from "./components/DebateScreen";
 import JudgeScreen from "./components/JudgeScreen";
@@ -29,6 +30,29 @@ interface ApiErrorPayload {
     code?: string;
     message?: string;
   };
+}
+
+const AUTH_ROUTES = new Set(["/login", "/signup", "/forgot-password", "/account", "/reset-password"]);
+
+function normalizeRoute(pathname: string): string {
+  const trimmed = pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  return AUTH_ROUTES.has(trimmed) ? trimmed : "/";
+}
+
+function getAuthModeFromRoute(routePath: string): AuthMode {
+  if (routePath === "/signup") {
+    return "signup";
+  }
+
+  if (routePath === "/forgot-password") {
+    return "reset";
+  }
+
+  if (routePath === "/reset-password") {
+    return "update-password";
+  }
+
+  return "signin";
 }
 
 function getErrorMessage(error: unknown, fallback: string): string {
@@ -53,21 +77,19 @@ function getAuthSuccessMessage(event: AuthChangeEvent): string | null {
     return "Enter your new password to finish recovery.";
   }
 
-  if (event === "SIGNED_IN") {
-    return null;
-  }
-
   return null;
 }
 
 export default function App() {
   const [phase, setPhase] = useState<GamePhase>("intro");
+  const [routePath, setRoutePath] = useState(() =>
+    typeof window === "undefined" ? "/" : normalizeRoute(window.location.pathname)
+  );
   const [battle, setBattle] = useState<Battle | null>(null);
   const [verdict, setVerdict] = useState<JudgeVerdict | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState<Language>("en");
   const [session, setSession] = useState<Session | null>(null);
-  const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [authEmailInput, setAuthEmailInput] = useState("");
   const [authPasswordInput, setAuthPasswordInput] = useState("");
   const [authMessage, setAuthMessage] = useState<string | null>(null);
@@ -83,12 +105,32 @@ export default function App() {
   const t = translations[language];
   const accessToken = session?.access_token ?? null;
   const userEmail = session?.user.email ?? null;
+  const authMode = useMemo(() => getAuthModeFromRoute(routePath), [routePath]);
+  const isAuthRoute = routePath !== "/";
+  const showLobbyNav = isAuthRoute || phase === "intro" || phase === "limit";
 
-  const handleAuthModeChange = useCallback((mode: AuthMode) => {
-    setAuthMode(mode);
-    setAuthMessage(null);
-    setBillingError(null);
-    setAuthPasswordInput("");
+  const navigate = useCallback((path: string, replace = false) => {
+    const nextPath = normalizeRoute(path);
+
+    if (typeof window !== "undefined") {
+      const currentPath = normalizeRoute(window.location.pathname);
+      if (replace) {
+        window.history.replaceState({}, "", nextPath);
+      } else if (currentPath !== nextPath) {
+        window.history.pushState({}, "", nextPath);
+      }
+    }
+
+    setRoutePath(nextPath);
+  }, []);
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setRoutePath(normalizeRoute(window.location.pathname));
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   const fetchBillingStatus = useCallback(async (token: string) => {
@@ -157,18 +199,24 @@ export default function App() {
       }
 
       if (event === "PASSWORD_RECOVERY") {
-        setAuthMode("update-password");
+        navigate("/reset-password", true);
         setBillingError(null);
       } else if (event === "SIGNED_IN") {
-        setAuthMode("signin");
         setAuthPasswordInput("");
         setBillingError(null);
         setAuthMessage(null);
+
+        if (normalizeRoute(window.location.pathname) !== "/" && normalizeRoute(window.location.pathname) !== "/account") {
+          navigate("/account", true);
+        }
       } else if (event === "SIGNED_OUT") {
-        setAuthMode("signin");
         setBillingStatus(null);
         setBillingError(null);
         setAuthPasswordInput("");
+
+        if (normalizeRoute(window.location.pathname) === "/account") {
+          navigate("/login", true);
+        }
       }
 
       if (nextSession?.access_token) {
@@ -182,7 +230,44 @@ export default function App() {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, [fetchBillingStatus]);
+  }, [fetchBillingStatus, navigate]);
+
+  useEffect(() => {
+    if (session && (routePath === "/login" || routePath === "/signup" || routePath === "/forgot-password")) {
+      navigate("/account", true);
+      return;
+    }
+
+    if (!session && routePath === "/account") {
+      navigate("/login", true);
+    }
+  }, [navigate, routePath, session]);
+
+  const handleAuthModeChange = useCallback(
+    (mode: AuthMode) => {
+      setAuthMessage(null);
+      setBillingError(null);
+      setAuthPasswordInput("");
+
+      if (mode === "signup") {
+        navigate("/signup");
+        return;
+      }
+
+      if (mode === "reset") {
+        navigate("/forgot-password");
+        return;
+      }
+
+      if (mode === "update-password") {
+        navigate("/reset-password");
+        return;
+      }
+
+      navigate("/login");
+    },
+    [navigate]
+  );
 
   const handleStart = useCallback(
     async (player1: string, player2: string, topic: string, lang: Language) => {
@@ -306,7 +391,7 @@ export default function App() {
       email: authEmailInput.trim(),
       password: authPasswordInput,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/login`,
       },
     });
 
@@ -315,14 +400,15 @@ export default function App() {
     } else if (data.session) {
       setAuthMessage("Account created. You are signed in.");
       setAuthPasswordInput("");
+      navigate("/account", true);
     } else {
       setAuthMessage("Check your email to confirm the account before signing in.");
-      setAuthMode("signin");
       setAuthPasswordInput("");
+      navigate("/login", true);
     }
 
     setIsAuthSubmitting(false);
-  }, [authEmailInput, authPasswordInput]);
+  }, [authEmailInput, authPasswordInput, navigate]);
 
   const handleResetPassword = useCallback(async () => {
     if (!supabase || authEmailInput.trim().length === 0) {
@@ -334,7 +420,7 @@ export default function App() {
     setBillingError(null);
 
     const { error } = await supabase.auth.resetPasswordForEmail(authEmailInput.trim(), {
-      redirectTo: window.location.origin,
+      redirectTo: `${window.location.origin}/reset-password`,
     });
 
     if (error) {
@@ -363,12 +449,12 @@ export default function App() {
       setBillingError(error.message);
     } else {
       setAuthMessage("Password updated. You can keep using the app.");
-      setAuthMode("signin");
       setAuthPasswordInput("");
+      navigate("/account", true);
     }
 
     setIsAuthSubmitting(false);
-  }, [authPasswordInput]);
+  }, [authPasswordInput, navigate]);
 
   const handleSignOut = useCallback(async () => {
     if (!supabase) {
@@ -383,14 +469,16 @@ export default function App() {
       setAuthMessage(null);
       setBillingStatus(null);
       setPhase("intro");
+      navigate("/login", true);
     }
     setPortalLoading(false);
-  }, []);
+  }, [navigate]);
 
   const handleBuyPlan = useCallback(
     async (planCode: PlanCode) => {
       if (!accessToken) {
         setBillingError("Sign in first to start checkout.");
+        navigate("/login");
         return;
       }
 
@@ -419,12 +507,13 @@ export default function App() {
         setCheckoutLoadingPlan(null);
       }
     },
-    [accessToken]
+    [accessToken, navigate]
   );
 
   const handleManagePlan = useCallback(async () => {
     if (!accessToken) {
       setBillingError("Sign in first to manage billing.");
+      navigate("/login");
       return;
     }
 
@@ -450,7 +539,7 @@ export default function App() {
     } finally {
       setPortalLoading(false);
     }
-  }, [accessToken]);
+  }, [accessToken, navigate]);
 
   const handleVsComplete = useCallback(() => setPhase("debate"), []);
 
@@ -462,6 +551,9 @@ export default function App() {
   const handleJudgeContinue = useCallback(() => setPhase("result"), []);
 
   const handleLimitBack = useCallback(() => setPhase("intro"), []);
+  const handleMemberAccess = useCallback(() => {
+    navigate(userEmail ? "/account" : "/signup");
+  }, [navigate, userEmail]);
 
   const handleRestart = useCallback(() => {
     abortRef.current.abort();
@@ -474,39 +566,31 @@ export default function App() {
 
   return (
     <>
-      <div className={cn("screen", phase === "intro" && "active")}>
-        <IntroScreen
-          onStart={handleStart}
-          isLoading={isLoading}
-          authEnabled={hasSupabaseAuthConfig}
-          authMode={authMode}
-          isAuthLoading={isAuthLoading}
-          isAuthSubmitting={isAuthSubmitting}
-          isBillingLoading={isBillingLoading}
-          checkoutLoadingPlan={checkoutLoadingPlan}
-          portalLoading={portalLoading}
-          userEmail={userEmail}
-          authEmailInput={authEmailInput}
-          authPasswordInput={authPasswordInput}
-          billingStatus={billingStatus}
-          authMessage={authMessage}
-          billingError={billingError}
-          onAuthEmailChange={setAuthEmailInput}
-          onAuthPasswordChange={setAuthPasswordInput}
-          onAuthModeChange={handleAuthModeChange}
-          onSignIn={handleSignIn}
-          onSignUp={handleSignUp}
-          onResetPassword={handleResetPassword}
-          onUpdatePassword={handleUpdatePassword}
-          onSignOut={handleSignOut}
-          onBuyPlan={handleBuyPlan}
-          onManagePlan={handleManagePlan}
-        />
-      </div>
+      {showLobbyNav ? (
+        <div className="app-auth-nav">
+          {isAuthRoute ? (
+            <button type="button" className="app-auth-nav__link" onClick={() => navigate("/")}>
+              {t.backToArena}
+            </button>
+          ) : userEmail ? (
+            <button type="button" className="app-auth-nav__link" onClick={() => navigate("/account")}>
+              {t.accountAction}
+            </button>
+          ) : (
+            <>
+              <button type="button" className="app-auth-nav__link" onClick={() => navigate("/login")}>
+                {t.signInAction}
+              </button>
+              <button type="button" className="app-auth-nav__link app-auth-nav__link--primary" onClick={() => navigate("/signup")}>
+                {t.createAccountAction}
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
 
-      <div className={cn("screen", phase === "limit" && "active")}>
-        <LimitScreen
-          onBack={handleLimitBack}
+      {isAuthRoute ? (
+        <AuthPage
           t={t}
           authEnabled={hasSupabaseAuthConfig}
           authMode={authMode}
@@ -532,43 +616,49 @@ export default function App() {
           onBuyPlan={handleBuyPlan}
           onManagePlan={handleManagePlan}
         />
+      ) : null}
+
+      <div className={cn("screen", phase === "intro" && "active", isAuthRoute && "screen--hidden")}>
+        <IntroScreen onStart={handleStart} isLoading={isLoading} />
       </div>
 
-      {battle && (
+      <div className={cn("screen", phase === "limit" && "active", isAuthRoute && "screen--hidden")}>
+        <LimitScreen onBack={handleLimitBack} onMemberAccess={handleMemberAccess} t={t} />
+      </div>
+
+      {battle && !isAuthRoute ? (
         <>
           <div className={cn("screen", phase === "vs" && "active")}>
             <VsScreen fighters={battle.fighters} onComplete={handleVsComplete} />
           </div>
 
           <div className={cn("screen", phase === "debate" && "active")}>
-            {phase === "debate" && (
+            {phase === "debate" ? (
               <DebateScreen
                 battle={battle}
                 onComplete={handleDebateComplete}
                 abortSignal={abortRef.current.signal}
                 t={t}
               />
-            )}
+            ) : null}
           </div>
 
           <div className={cn("screen", phase === "judge" && "active")}>
-            {verdict && (
+            {verdict ? (
               <JudgeScreen
                 verdict={verdict}
                 winnerName={battle.fighters.find((f) => f.id === verdict.winner)!.name}
                 onContinue={handleJudgeContinue}
                 t={t}
               />
-            )}
+            ) : null}
           </div>
 
           <div className={cn("screen", phase === "result" && "active")}>
-            {phase === "result" && (
-              <ResultScreen battle={battle} onRestart={handleRestart} t={t} />
-            )}
+            {phase === "result" ? <ResultScreen battle={battle} onRestart={handleRestart} t={t} /> : null}
           </div>
         </>
-      )}
+      ) : null}
     </>
   );
 }

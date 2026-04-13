@@ -61,6 +61,8 @@ export interface Translations {
   resetPasswordHint: string;
   updatePasswordHint: string;
   backToSignIn: string;
+  accountAction: string;
+  backToArena: string;
   signOut: string;
   subscribeNow: string;
   managePlan: string;
@@ -112,6 +114,8 @@ const baseEnglish: Translations = {
   resetPasswordHint: "Enter your email and Supabase will send you a password reset link.",
   updatePasswordHint: "Choose a new password to complete account recovery.",
   backToSignIn: "Back to Sign In",
+  accountAction: "Account",
+  backToArena: "Back to Arena",
   signOut: "Sign Out",
   subscribeNow: "Subscribe",
   managePlan: "Manage Plan",
@@ -159,6 +163,8 @@ export const translations: Record<Language, Translations> = {
     resetPasswordHint: "Introduce tu email y Supabase enviara un link de recuperacion.",
     updatePasswordHint: "Elige una nueva contrasena para completar la recuperacion.",
     backToSignIn: "Volver a Iniciar",
+    accountAction: "Cuenta",
+    backToArena: "Volver al Arena",
     signOut: "Cerrar Sesion",
     subscribeNow: "Suscribirse",
     managePlan: "Gestionar Plan",
@@ -199,6 +205,8 @@ export const translations: Record<Language, Translations> = {
     resetPasswordHint: "Gib deine Email ein und Supabase sendet einen Reset Link.",
     updatePasswordHint: "Wahle ein neues Passwort fur die Recovery.",
     backToSignIn: "Zuruck zur Anmeldung",
+    accountAction: "Konto",
+    backToArena: "Zuruck zur Arena",
     signOut: "Abmelden",
     subscribeNow: "Abonnieren",
     managePlan: "Plan Verwalten",
@@ -239,6 +247,8 @@ export const translations: Record<Language, Translations> = {
     resetPasswordHint: "Entrez votre email et Supabase enverra un lien de reinitialisation.",
     updatePasswordHint: "Choisissez un nouveau mot de passe pour finir la recovery.",
     backToSignIn: "Retour a la Connexion",
+    accountAction: "Compte",
+    backToArena: "Retour a l'Arena",
     signOut: "Deconnexion",
     subscribeNow: "S'abonner",
     managePlan: "Gerer le Plan",
