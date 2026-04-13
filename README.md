@@ -8,11 +8,15 @@ A dramatic AI debate web app with retro pixel-art arcade presentation. Two fight
 - **Plain CSS** (no Tailwind, no UI kits)
 - **Cloudflare Pages Functions** (serverless backend)
 - **DeepSeek API** (debate generation, OpenAI-compatible)
+- **Supabase** (Auth + billing state)
+- **Dodo Payments** (recurring credit packs)
 
 ## Prerequisites
 
 - Node.js 18+
 - A [DeepSeek API key](https://platform.deepseek.com/)
+- A Supabase project
+- A Dodo Payments account with recurring products configured
 - (For deployment) A Cloudflare account
 
 ## Setup
@@ -27,6 +31,19 @@ Create `.dev.vars` for local Wrangler dev:
 cp .dev.vars.example .dev.vars
 # Edit .dev.vars and paste your DEEPSEEK_API_KEY
 ```
+
+For the billing backend you also need:
+
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `DODO_API_KEY`
+- `DODO_API_BASE_URL` (`https://test.dodopayments.com` for sandbox, `https://live.dodopayments.com` for production)
+- `DODO_WEBHOOK_SECRET`
+- `DODO_PRICE_ID_PACK_25_MONTHLY`
+- `DODO_PRICE_ID_PACK_50_MONTHLY`
+- `DODO_PRICE_ID_PACK_100_MONTHLY`
+- optional Dodo return URLs for checkout and portal
 
 ## Running Locally
 
@@ -80,6 +97,20 @@ IntroScreen → [API call] → VsScreen → DebateScreen → JudgeScreen → Res
 - Requests strict JSON with exactly 12 alternating debate rounds + judge verdict
 - Uses `response_format: { type: "json_object" }` for reliable JSON output
 - Client normalizes the response (forces 12 rounds, correct alternation)
+- If a Supabase bearer token is present, the backend checks and consumes one paid debate credit after a successful generation
+
+## Billing Backend
+
+The backend now includes the foundation for recurring paid credit packs:
+
+- `POST /api/billing/create-checkout-session`
+- `POST /api/billing/create-portal-session`
+- `GET /api/billing/status`
+- `POST /api/webhooks/dodo`
+
+Supabase schema and RLS live in:
+
+`supabase/migrations/20260413_billing_backend.sql`
 
 **The frontend never calls DeepSeek directly.**
 

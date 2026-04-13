@@ -1,3 +1,15 @@
 # Wrangler local dev environment variables
 # Copy this file to .dev.vars and fill in your key
 DEEPSEEK_API_KEY=sk-your-key-here
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+DODO_API_KEY=your_dodo_api_key
+DODO_API_BASE_URL=https://test.dodopayments.com
+DODO_WEBHOOK_SECRET=your_dodo_webhook_secret
+DODO_PRICE_ID_PACK_25_MONTHLY=your_dodo_price_id_for_25_monthly
+DODO_PRICE_ID_PACK_50_MONTHLY=your_dodo_price_id_for_50_monthly
+DODO_PRICE_ID_PACK_100_MONTHLY=your_dodo_price_id_for_100_monthly
+DODO_RETURN_URL_SUCCESS=https://your-app-domain.com/billing/success
+DODO_RETURN_URL_CANCEL=https://your-app-domain.com/billing/cancel
+DODO_PORTAL_RETURN_URL=https://your-app-domain.com/billing

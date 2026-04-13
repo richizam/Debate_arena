@@ -1,6 +1,8 @@
-interface Env {
-  DEEPSEEK_API_KEY: string;
-}
+import { getOptionalAuthenticatedUser } from "../_shared/auth";
+import { consumeBattleCredit, getBillingStatus } from "../_shared/billing";
+import { optionsResponse } from "../_shared/cors";
+import type { Env } from "../_shared/env";
+import { errorResponse, jsonResponse, readJson } from "../_shared/http";
 
 interface RequestBody {
   fighterAName: string;
@@ -25,27 +27,16 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ru: "Russian",
 };
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Content-Type": "application/json",
-};
-
 export const onRequestOptions: PagesFunction = async () => {
-  return new Response(null, { status: 204, headers: corsHeaders });
+  return optionsResponse();
 };
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
-
   let body: RequestBody;
   try {
-    body = await context.request.json() as RequestBody;
+    body = await readJson<RequestBody>(context.request);
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), {
-      status: 400,
-      headers: corsHeaders,
-    });
+    return errorResponse(400, "invalid_json", "Invalid JSON body.");
   }
 
   const { fighterAName, fighterBName, topic, language } = body;
@@ -53,10 +44,23 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   const apiKey = context.env.DEEPSEEK_API_KEY;
 
   if (!apiKey) {
-    return new Response(JSON.stringify({ error: "DEEPSEEK_API_KEY not configured" }), {
-      status: 500,
-      headers: corsHeaders,
-    });
+    return errorResponse(500, "missing_deepseek_key", "DEEPSEEK_API_KEY not configured.");
+  }
+
+  const auth = await getOptionalAuthenticatedUser(context.request, context.env);
+  let billingStatus = null;
+
+  if (auth) {
+    try {
+      billingStatus = await getBillingStatus(context.env, auth.user);
+    } catch (billingError) {
+      console.error("Failed to consume paid debate credit:", billingError);
+      return errorResponse(500, "credit_check_failed", "Unable to verify paid debate credits.");
+    }
+
+    if (!billingStatus || billingStatus.creditsRemaining <= 0 || !billingStatus.expiresAt) {
+      return errorResponse(402, "credits_exhausted", "No active paid debate credits remain.");
+    }
   }
 
   const systemPrompt = `You are scripting a LIVE argument between two real people for a debate game. This is NOT a formal debate — it is a heated, reactive, personal argument where each person directly responds to what the other just said.
@@ -136,32 +140,36 @@ Respond with this EXACT JSON (no other text):
     if (!response.ok) {
       const errText = await response.text();
       console.error("DeepSeek API error:", response.status, errText);
-      return new Response(JSON.stringify({ error: `DeepSeek error: ${response.status}` }), {
-        status: 502,
-        headers: corsHeaders,
-      });
+      return errorResponse(502, "deepseek_error", `DeepSeek error: ${response.status}`);
     }
 
     const data = await response.json() as DeepSeekResponse;
     const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
-      return new Response(JSON.stringify({ error: "Empty response from DeepSeek" }), {
-        status: 502,
-        headers: corsHeaders,
-      });
+      return errorResponse(502, "empty_deepseek_response", "Empty response from DeepSeek.");
     }
 
     const battle: unknown = JSON.parse(content);
-    return new Response(JSON.stringify(battle), {
-      status: 200,
-      headers: corsHeaders,
-    });
+    let remainingBilling = billingStatus;
+
+    if (auth) {
+      remainingBilling = await consumeBattleCredit(context.env, auth.user);
+      if (!remainingBilling) {
+        return errorResponse(409, "credit_conflict", "Debate credits changed before the battle could be finalized.");
+      }
+    }
+
+    return jsonResponse(
+      auth
+        ? {
+            ...(battle as Record<string, unknown>),
+            _billing: remainingBilling,
+          }
+        : battle
+    );
   } catch (err) {
     console.error("start-battle function error:", err);
-    return new Response(JSON.stringify({ error: "Failed to generate debate" }), {
-      status: 502,
-      headers: corsHeaders,
-    });
+    return errorResponse(502, "battle_generation_failed", "Failed to generate debate.");
   }
 };

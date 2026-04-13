@@ -12,6 +12,7 @@ dist/
 
 # Wrangler local state
 .wrangler/
+debate-arena.zip
 
 # Claude Code project files
 .claude/
