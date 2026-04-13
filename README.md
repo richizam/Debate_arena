@@ -1,141 +1,152 @@
 # Debate Arena
 
-A dramatic AI debate web app with retro pixel-art arcade presentation. Two fighters debate a topic, an AI judge picks a winner, and the audience votes.
+Arcade-style AI debate app built with Vite, React, Cloudflare Pages Functions, Supabase Auth, and Dodo recurring subscriptions.
 
 ## Stack
 
-- **Vite** + **React 18** + **TypeScript**
-- **Plain CSS** (no Tailwind, no UI kits)
-- **Cloudflare Pages Functions** (serverless backend)
-- **DeepSeek API** (debate generation, OpenAI-compatible)
-- **Supabase** (Auth + billing state)
-- **Dodo Payments** (recurring credit packs)
+- Vite + React 18 + TypeScript
+- Plain CSS
+- Cloudflare Pages Functions
+- DeepSeek API
+- Supabase Auth + Postgres
+- Dodo Payments
 
-## Prerequisites
+## Runtime Overview
 
-- Node.js 18+
-- A [DeepSeek API key](https://platform.deepseek.com/)
-- A Supabase project
-- A Dodo Payments account with recurring products configured
-- (For deployment) A Cloudflare account
+- Frontend runs in Vite/Cloudflare Pages
+- Backend endpoints live in `functions/api/*`
+- Authenticated paid flows use Supabase magic-link auth
+- Billing state is stored in Supabase
+- Subscription checkout and portal sessions are created through Dodo
 
-## Setup
+## Required Accounts
+
+- DeepSeek
+- Cloudflare Pages
+- Supabase
+- Dodo Payments
+
+## Local Setup
+
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-Create `.dev.vars` for local Wrangler dev:
+Frontend env for Vite:
+
+```bash
+cp .env.example .env.local
+```
+
+Populate:
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- optional `VITE_API_BASE_URL`
+
+Backend env for Wrangler / Pages Functions:
 
 ```bash
 cp .dev.vars.example .dev.vars
-# Edit .dev.vars and paste your DEEPSEEK_API_KEY
 ```
 
-For the billing backend you also need:
+Populate:
 
+- `DEEPSEEK_API_KEY`
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DODO_API_KEY`
-- `DODO_API_BASE_URL` (`https://test.dodopayments.com` for sandbox, `https://live.dodopayments.com` for production)
+- `DODO_API_BASE_URL`
 - `DODO_WEBHOOK_SECRET`
 - `DODO_PRICE_ID_PACK_25_MONTHLY`
 - `DODO_PRICE_ID_PACK_50_MONTHLY`
 - `DODO_PRICE_ID_PACK_100_MONTHLY`
-- optional Dodo return URLs for checkout and portal
+- `DODO_RETURN_URL_SUCCESS`
+- `DODO_RETURN_URL_CANCEL`
+- `DODO_PORTAL_RETURN_URL`
 
-## Running Locally
+## Supabase
 
-```bash
-# With Cloudflare Functions (full stack — recommended)
-npm run pages:dev
-# Opens at http://localhost:3000
-
-# Vite only (frontend, API calls will fall back to hardcoded battle)
-npm run dev
-```
-
-## Building & Deploying
-
-```bash
-npm run build         # TypeScript check + Vite build → dist/
-npm run deploy        # Build + deploy to Cloudflare Pages
-```
-
-For production, set `DEEPSEEK_API_KEY` in the Cloudflare Pages dashboard under **Settings → Environment variables**.
-
-## Image Assets
-
-All images live in `public/images/` and are served at `/images/<filename>`:
-
-| File | Purpose |
-|---|---|
-| `debate_arena_main.jpg` | Arena background (intro, debate, judge screens) |
-| `versus_page.jpg` | VS splash screen background |
-| `player_1.png` | Fighter A (Axel) portrait — transparent PNG |
-| `player_2.png` | Fighter B (Bruno) portrait — transparent PNG |
-| `judge.png` | Judge portrait — transparent PNG |
-| `results_debate_arena.jpg` | Results screen background |
-
-## Game Flow
-
-```
-IntroScreen → [API call] → VsScreen → DebateScreen → JudgeScreen → ResultScreen
-```
-
-1. **IntroScreen** — Title, matchup, topic, Start button
-2. **VsScreen** — Dramatic VS reveal, auto-transitions after ~2s
-3. **DebateScreen** — 12 alternating messages auto-play (~4s each), active speaker highlighted
-4. **JudgeScreen** — Judge portrait, winner announcement, reason
-5. **ResultScreen** — Winner card, audience vote buttons, Rematch
-
-## DeepSeek Integration
-
-`POST /api/start-battle` (handled by `functions/api/start-battle.ts`):
-- Sends fighter names, personas, and topic to DeepSeek
-- Requests strict JSON with exactly 12 alternating debate rounds + judge verdict
-- Uses `response_format: { type: "json_object" }` for reliable JSON output
-- Client normalizes the response (forces 12 rounds, correct alternation)
-- If a Supabase bearer token is present, the backend checks and consumes one paid debate credit after a successful generation
-
-## Billing Backend
-
-The backend now includes the foundation for recurring paid credit packs:
-
-- `POST /api/billing/create-checkout-session`
-- `POST /api/billing/create-portal-session`
-- `GET /api/billing/status`
-- `POST /api/webhooks/dodo`
-
-Supabase schema and RLS live in:
+Run the migration in Supabase SQL Editor:
 
 `supabase/migrations/20260413_billing_backend.sql`
 
-**The frontend never calls DeepSeek directly.**
+This creates:
 
-## Fallback Behavior
+- `profiles`
+- `credit_wallets`
+- `credit_ledger`
+- `billing_subscriptions`
+- `billing_webhook_events`
 
-If DeepSeek is unavailable (missing API key, network error, bad response):
-- The API returns a 502 error
-- The client catches it and loads a hardcoded battle from `src/data/emergencyFallbackBattle.ts`
-- The game continues normally — the user sees no error
+## Supabase Auth Configuration
 
-## Project Structure
+In Supabase Auth settings, configure:
 
+- Site URL: your production app URL
+- Redirect URLs: include your production app URL
+
+For production this project expects:
+
+- `https://www.debatearena.xyz`
+
+## Dodo
+
+Recurring plans are configured through these env vars:
+
+- `DODO_PRICE_ID_PACK_25_MONTHLY`
+- `DODO_PRICE_ID_PACK_50_MONTHLY`
+- `DODO_PRICE_ID_PACK_100_MONTHLY`
+
+Webhook endpoint:
+
+- `/api/webhooks/dodo`
+
+## Development
+
+Frontend only:
+
+```bash
+npm run dev
 ```
-src/
-  components/     Screen + UI components
-  data/           emergencyFallbackBattle.ts
-  styles/         CSS (variables, reset, app, screens, components)
-  types/          battle.ts — TypeScript types
-  utils/          battleNormalizer, timers, classNames
-  App.tsx         State machine + screen orchestration
-  main.tsx        Entry point
 
-functions/api/
-  start-battle.ts  DeepSeek integration
-  vote.ts          Vote stub (no DB yet)
+Full stack with Pages Functions:
 
-public/images/    All 6 pixel-art assets
+```bash
+npm run pages:dev
 ```
+
+## Build
+
+```bash
+npm run build
+```
+
+## Deploy
+
+```bash
+npm run deploy
+```
+
+Cloudflare Pages must define both:
+
+- frontend build vars: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+- backend runtime vars: all keys from `.dev.vars.example`
+
+## API Endpoints
+
+- `POST /api/start-battle`
+- `POST /api/vote`
+- `GET /api/billing/status`
+- `POST /api/billing/create-checkout-session`
+- `POST /api/billing/create-portal-session`
+- `POST /api/webhooks/dodo`
+
+## Notes
+
+- Unauthenticated users keep the legacy free daily debate flow.
+- Authenticated users use paid credits from Supabase.
+- Paid debates only consume one credit after successful AI generation.

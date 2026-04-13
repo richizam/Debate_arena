@@ -218,6 +218,163 @@
   50% { opacity: 0; }
 }
 
+.billing-panel {
+  width: min(920px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-md);
+  padding: var(--gap-md);
+  border: 2px solid rgba(0, 240, 255, 0.4);
+  background: rgba(6, 8, 26, 0.88);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.12);
+}
+
+.billing-panel__header,
+.billing-panel__signin,
+.billing-panel__account {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap-sm);
+}
+
+.billing-panel__title {
+  margin: 0;
+  font-family: var(--font-pixel);
+  font-size: 10px;
+  color: var(--cyan);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.billing-panel__subtitle,
+.billing-panel__hint,
+.billing-panel__message,
+.billing-panel__error,
+.billing-panel__account-label {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.billing-panel__subtitle,
+.billing-panel__hint,
+.billing-panel__message,
+.billing-panel__account-label {
+  color: var(--text-primary);
+}
+
+.billing-panel__account-label span {
+  color: var(--text-white);
+}
+
+.billing-panel__message {
+  color: var(--cyan);
+}
+
+.billing-panel__error {
+  color: var(--fighter-a);
+}
+
+.billing-panel__signin-row,
+.billing-panel__actions,
+.billing-panel__plans,
+.billing-panel__stats {
+  display: flex;
+  gap: var(--gap-sm);
+  flex-wrap: wrap;
+}
+
+.billing-panel__input {
+  min-width: 240px;
+  flex: 1 1 280px;
+}
+
+.billing-panel__stats {
+  margin-top: var(--gap-xs);
+}
+
+.billing-stat {
+  min-width: 150px;
+  flex: 1 1 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid rgba(0, 240, 255, 0.22);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.billing-stat__label {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.billing-stat__value {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: var(--text-white);
+  letter-spacing: 1px;
+}
+
+.billing-plan {
+  flex: 1 1 180px;
+  min-width: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px;
+  border: 2px solid rgba(0, 240, 255, 0.25);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--text-white);
+  cursor: pointer;
+  transition: border-color var(--t-fast), box-shadow var(--t-fast), transform var(--t-fast);
+}
+
+.billing-plan:hover:not(:disabled) {
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan);
+  transform: translateY(-2px);
+}
+
+.billing-plan:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.billing-plan--active {
+  border-color: var(--neon-yellow);
+  box-shadow: 0 0 14px rgba(255, 230, 0, 0.24);
+}
+
+.billing-plan__name,
+.billing-plan__action {
+  font-family: var(--font-pixel);
+  text-transform: uppercase;
+}
+
+.billing-plan__name {
+  font-size: 9px;
+  color: var(--cyan);
+  letter-spacing: 1px;
+}
+
+.billing-plan__price {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text-white);
+}
+
+.billing-plan__action {
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+}
+
 /* ============================================================
    VS SCREEN
    ============================================================ */
@@ -631,6 +788,15 @@
   .intro-matchup { font-size: 10px; }
   .vs-names { padding: 0 5%; }
   .vs-name { font-size: 11px; }
+  .intro-content { padding: var(--gap-lg) var(--gap-md); }
+  .billing-panel { padding: var(--gap-sm); }
+  .billing-panel__signin-row,
+  .billing-panel__actions,
+  .billing-panel__plans,
+  .billing-panel__stats { flex-direction: column; }
+  .billing-plan,
+  .billing-stat,
+  .billing-panel__input { min-width: 0; width: 100%; }
 }
 
 @media (max-width: 480px) {
@@ -671,15 +837,15 @@
 .limit-title {
   font-family: var(--font-pixel);
   font-size: 22px;
-  color: var(--color-magenta);
-  text-shadow: 0 0 16px var(--color-magenta);
+  color: var(--magenta);
+  text-shadow: 0 0 16px var(--magenta);
   margin: 0;
 }
 
 .limit-subtitle {
   font-family: var(--font-pixel);
   font-size: 11px;
-  color: var(--color-fg);
+  color: var(--text-white);
   margin: 0;
   line-height: 1.8;
 }
@@ -695,7 +861,7 @@
 .limit-or {
   font-family: var(--font-pixel);
   font-size: 11px;
-  color: var(--color-cyan);
+  color: var(--cyan);
   margin: var(--gap-sm) 0;
 }
 
@@ -708,8 +874,8 @@
 }
 
 .limit-coming-soon {
-  border: 2px solid var(--color-cyan);
-  box-shadow: 0 0 12px var(--color-cyan);
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
   padding: var(--gap-md) var(--gap-lg);
   text-align: center;
   margin: var(--gap-sm) 0;
@@ -718,8 +884,8 @@
 .limit-coming-soon-label {
   font-family: var(--font-pixel);
   font-size: 13px;
-  color: var(--color-cyan);
-  text-shadow: 0 0 10px var(--color-cyan);
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
   margin: 0 0 var(--gap-sm);
 }
 

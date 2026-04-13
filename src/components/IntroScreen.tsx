@@ -1,14 +1,51 @@
 import { useState } from "react";
 import type { Language } from "../types/battle";
 import { LANGUAGES, translations } from "../data/i18n";
+import type { BillingStatus, PlanCode } from "../types/billing";
+import BillingPanel from "./BillingPanel";
 import PixelButton from "./PixelButton";
 
 interface IntroScreenProps {
   onStart: (player1: string, player2: string, topic: string, language: Language) => void;
   isLoading: boolean;
+  authEnabled: boolean;
+  isAuthLoading: boolean;
+  isBillingLoading: boolean;
+  isMagicLinkSending: boolean;
+  checkoutLoadingPlan: PlanCode | null;
+  portalLoading: boolean;
+  userEmail: string | null;
+  authEmailInput: string;
+  billingStatus: BillingStatus | null;
+  authMessage: string | null;
+  billingError: string | null;
+  onAuthEmailChange: (value: string) => void;
+  onSendMagicLink: () => void;
+  onSignOut: () => void;
+  onBuyPlan: (planCode: PlanCode) => void;
+  onManagePlan: () => void;
 }
 
-export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
+export default function IntroScreen({
+  onStart,
+  isLoading,
+  authEnabled,
+  isAuthLoading,
+  isBillingLoading,
+  isMagicLinkSending,
+  checkoutLoadingPlan,
+  portalLoading,
+  userEmail,
+  authEmailInput,
+  billingStatus,
+  authMessage,
+  billingError,
+  onAuthEmailChange,
+  onSendMagicLink,
+  onSignOut,
+  onBuyPlan,
+  onManagePlan,
+}: IntroScreenProps) {
   const [language, setLanguage] = useState<Language>("en");
   const [player1, setPlayer1] = useState("");
   const [player2, setPlayer2] = useState("");
@@ -114,6 +151,26 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
             disabled={!canStart}
           />
         )}
+
+        <BillingPanel
+          t={t}
+          authEnabled={authEnabled}
+          isAuthLoading={isAuthLoading}
+          isBillingLoading={isBillingLoading}
+          isMagicLinkSending={isMagicLinkSending}
+          checkoutLoadingPlan={checkoutLoadingPlan}
+          portalLoading={portalLoading}
+          userEmail={userEmail}
+          authEmailInput={authEmailInput}
+          billingStatus={billingStatus}
+          authMessage={authMessage}
+          billingError={billingError}
+          onAuthEmailChange={onAuthEmailChange}
+          onSendMagicLink={onSendMagicLink}
+          onSignOut={onSignOut}
+          onBuyPlan={onBuyPlan}
+          onManagePlan={onManagePlan}
+        />
       </div>
     </div>
   );
