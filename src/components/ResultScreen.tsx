@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Battle, SpeakerId } from "../types/battle";
 import type { Translations } from "../data/i18n";
+import { getApiUrl } from "../utils/api";
 import PixelButton from "./PixelButton";
 
 interface ResultScreenProps {
@@ -20,7 +21,7 @@ export default function ResultScreen({ battle, onRestart, t }: ResultScreenProps
     if (voted || voteSubmitting) return;
     setVoteSubmitting(true);
     try {
-      await fetch("https://debate-arena-492.pages.dev/api/vote", {
+      await fetch(getApiUrl("/api/vote"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

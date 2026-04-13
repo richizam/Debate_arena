@@ -4,6 +4,7 @@ import { normalizeBattle } from "./utils/battleNormalizer";
 import { createFallbackBattle } from "./data/emergencyFallbackBattle";
 import { translations } from "./data/i18n";
 import { cn } from "./utils/classNames";
+import { getApiUrl } from "./utils/api";
 
 import IntroScreen from "./components/IntroScreen";
 import VsScreen from "./components/VsScreen";
@@ -45,7 +46,7 @@ export default function App() {
     setVerdict(null);
 
     try {
-      const res = await fetch("https://debate-arena-492.pages.dev/api/start-battle", {
+      const res = await fetch(getApiUrl("/api/start-battle"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -72,6 +73,7 @@ export default function App() {
       setBattle(createFallbackBattle(player1, player2, topic));
     }
 
+    markDailyDebateUsed();
     setIsLoading(false);
     setPhase("vs");
   }, []);
