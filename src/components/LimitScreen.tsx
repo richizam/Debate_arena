@@ -1,24 +1,32 @@
 import type { Translations } from "../data/i18n";
 import type { BillingStatus, PlanCode } from "../types/billing";
 import BillingPanel from "./BillingPanel";
+import type { AuthMode } from "./BillingPanel";
 import PixelButton from "./PixelButton";
 
 interface LimitScreenProps {
   onBack: () => void;
   t: Translations;
   authEnabled: boolean;
+  authMode: AuthMode;
   isAuthLoading: boolean;
+  isAuthSubmitting: boolean;
   isBillingLoading: boolean;
-  isMagicLinkSending: boolean;
   checkoutLoadingPlan: PlanCode | null;
   portalLoading: boolean;
   userEmail: string | null;
   authEmailInput: string;
+  authPasswordInput: string;
   billingStatus: BillingStatus | null;
   authMessage: string | null;
   billingError: string | null;
   onAuthEmailChange: (value: string) => void;
-  onSendMagicLink: () => void;
+  onAuthPasswordChange: (value: string) => void;
+  onAuthModeChange: (mode: AuthMode) => void;
+  onSignIn: () => void;
+  onSignUp: () => void;
+  onResetPassword: () => void;
+  onUpdatePassword: () => void;
   onSignOut: () => void;
   onBuyPlan: (planCode: PlanCode) => void;
   onManagePlan: () => void;
@@ -28,18 +36,25 @@ export default function LimitScreen({
   onBack,
   t,
   authEnabled,
+  authMode,
   isAuthLoading,
+  isAuthSubmitting,
   isBillingLoading,
-  isMagicLinkSending,
   checkoutLoadingPlan,
   portalLoading,
   userEmail,
   authEmailInput,
+  authPasswordInput,
   billingStatus,
   authMessage,
   billingError,
   onAuthEmailChange,
-  onSendMagicLink,
+  onAuthPasswordChange,
+  onAuthModeChange,
+  onSignIn,
+  onSignUp,
+  onResetPassword,
+  onUpdatePassword,
   onSignOut,
   onBuyPlan,
   onManagePlan,
@@ -64,18 +79,25 @@ export default function LimitScreen({
         <BillingPanel
           t={t}
           authEnabled={authEnabled}
+          authMode={authMode}
           isAuthLoading={isAuthLoading}
+          isAuthSubmitting={isAuthSubmitting}
           isBillingLoading={isBillingLoading}
-          isMagicLinkSending={isMagicLinkSending}
           checkoutLoadingPlan={checkoutLoadingPlan}
           portalLoading={portalLoading}
           userEmail={userEmail}
           authEmailInput={authEmailInput}
+          authPasswordInput={authPasswordInput}
           billingStatus={billingStatus}
           authMessage={authMessage}
           billingError={billingError}
           onAuthEmailChange={onAuthEmailChange}
-          onSendMagicLink={onSendMagicLink}
+          onAuthPasswordChange={onAuthPasswordChange}
+          onAuthModeChange={onAuthModeChange}
+          onSignIn={onSignIn}
+          onSignUp={onSignUp}
+          onResetPassword={onResetPassword}
+          onUpdatePassword={onUpdatePassword}
           onSignOut={onSignOut}
           onBuyPlan={onBuyPlan}
           onManagePlan={onManagePlan}

@@ -3,21 +3,30 @@ import type { BillingStatus, PlanCode } from "../types/billing";
 import { BILLING_PLANS } from "../types/billing";
 import PixelButton from "./PixelButton";
 
+export type AuthMode = "signin" | "signup" | "reset" | "update-password";
+
 interface BillingPanelProps {
   t: Translations;
   authEnabled: boolean;
+  authMode: AuthMode;
   isAuthLoading: boolean;
+  isAuthSubmitting: boolean;
   isBillingLoading: boolean;
-  isMagicLinkSending: boolean;
   checkoutLoadingPlan: PlanCode | null;
   portalLoading: boolean;
   userEmail: string | null;
   authEmailInput: string;
+  authPasswordInput: string;
   billingStatus: BillingStatus | null;
   authMessage: string | null;
   billingError: string | null;
   onAuthEmailChange: (value: string) => void;
-  onSendMagicLink: () => void;
+  onAuthPasswordChange: (value: string) => void;
+  onAuthModeChange: (mode: AuthMode) => void;
+  onSignIn: () => void;
+  onSignUp: () => void;
+  onResetPassword: () => void;
+  onUpdatePassword: () => void;
   onSignOut: () => void;
   onBuyPlan: (planCode: PlanCode) => void;
   onManagePlan: () => void;
@@ -32,21 +41,48 @@ function formatExpiryDate(value: string | null): string {
   return date.toLocaleDateString();
 }
 
+function getSubmitLabel(t: Translations, authMode: AuthMode, isAuthSubmitting: boolean): string {
+  if (isAuthSubmitting) {
+    return t.loadingBilling;
+  }
+
+  if (authMode === "signin") {
+    return t.signInAction;
+  }
+
+  if (authMode === "signup") {
+    return t.createAccountAction;
+  }
+
+  if (authMode === "reset") {
+    return t.resetPasswordAction;
+  }
+
+  return t.updatePasswordAction;
+}
+
 export default function BillingPanel({
   t,
   authEnabled,
+  authMode,
   isAuthLoading,
+  isAuthSubmitting,
   isBillingLoading,
-  isMagicLinkSending,
   checkoutLoadingPlan,
   portalLoading,
   userEmail,
   authEmailInput,
+  authPasswordInput,
   billingStatus,
   authMessage,
   billingError,
   onAuthEmailChange,
-  onSendMagicLink,
+  onAuthPasswordChange,
+  onAuthModeChange,
+  onSignIn,
+  onSignUp,
+  onResetPassword,
+  onUpdatePassword,
   onSignOut,
   onBuyPlan,
   onManagePlan,
@@ -60,6 +96,33 @@ export default function BillingPanel({
   }
 
   const isSignedIn = Boolean(userEmail);
+  const showEmailField = authMode !== "update-password";
+  const showPasswordField = authMode === "signin" || authMode === "signup" || authMode === "update-password";
+  const canSubmit =
+    authMode === "update-password"
+      ? authPasswordInput.trim().length >= 6
+      : authMode === "reset"
+        ? authEmailInput.trim().length > 0
+        : authEmailInput.trim().length > 0 && authPasswordInput.trim().length >= 6;
+
+  function handleSubmit() {
+    if (authMode === "signin") {
+      onSignIn();
+      return;
+    }
+
+    if (authMode === "signup") {
+      onSignUp();
+      return;
+    }
+
+    if (authMode === "reset") {
+      onResetPassword();
+      return;
+    }
+
+    onUpdatePassword();
+  }
 
   return (
     <div className="billing-panel">
@@ -127,23 +190,87 @@ export default function BillingPanel({
         </div>
       ) : (
         <div className="billing-panel__signin">
-          <label className="intro-input-label">{t.emailLabel}</label>
-          <div className="billing-panel__signin-row">
-            <input
-              className="pixel-input billing-panel__input"
-              type="email"
-              placeholder={t.emailPlaceholder}
-              value={authEmailInput}
-              onChange={(event) => onAuthEmailChange(event.target.value)}
-              disabled={isAuthLoading || isMagicLinkSending}
-            />
-            <PixelButton
-              label={isMagicLinkSending ? t.sendingMagicLink : t.sendMagicLink}
-              onClick={onSendMagicLink}
-              disabled={isAuthLoading || isMagicLinkSending || authEmailInput.trim().length === 0}
-            />
+          <div className="billing-panel__tabs">
+            <button
+              type="button"
+              className={`billing-panel__tab${authMode === "signin" ? " billing-panel__tab--active" : ""}`}
+              onClick={() => onAuthModeChange("signin")}
+              disabled={isAuthLoading || isAuthSubmitting}
+            >
+              {t.signInAction}
+            </button>
+            <button
+              type="button"
+              className={`billing-panel__tab${authMode === "signup" ? " billing-panel__tab--active" : ""}`}
+              onClick={() => onAuthModeChange("signup")}
+              disabled={isAuthLoading || isAuthSubmitting}
+            >
+              {t.createAccountAction}
+            </button>
+            <button
+              type="button"
+              className={`billing-panel__tab${authMode === "reset" ? " billing-panel__tab--active" : ""}`}
+              onClick={() => onAuthModeChange("reset")}
+              disabled={isAuthLoading || isAuthSubmitting}
+            >
+              {t.forgotPassword}
+            </button>
           </div>
-          <p className="billing-panel__hint">{t.authHint}</p>
+
+          {showEmailField && (
+            <>
+              <label className="intro-input-label">{t.emailLabel}</label>
+              <input
+                className="pixel-input billing-panel__input"
+                type="email"
+                placeholder={t.emailPlaceholder}
+                value={authEmailInput}
+                onChange={(event) => onAuthEmailChange(event.target.value)}
+                disabled={isAuthLoading || isAuthSubmitting}
+              />
+            </>
+          )}
+
+          {showPasswordField && (
+            <>
+              <label className="intro-input-label">{t.passwordLabel}</label>
+              <input
+                className="pixel-input billing-panel__input"
+                type="password"
+                placeholder={t.passwordPlaceholder}
+                value={authPasswordInput}
+                onChange={(event) => onAuthPasswordChange(event.target.value)}
+                disabled={isAuthLoading || isAuthSubmitting}
+              />
+            </>
+          )}
+
+          <p className="billing-panel__hint">
+            {authMode === "signup"
+              ? t.signUpHint
+              : authMode === "reset"
+                ? t.resetPasswordHint
+                : authMode === "update-password"
+                  ? t.updatePasswordHint
+                  : t.signInHint}
+          </p>
+
+          <div className="billing-panel__actions">
+            <PixelButton
+              label={getSubmitLabel(t, authMode, isAuthSubmitting)}
+              onClick={handleSubmit}
+              disabled={isAuthLoading || isAuthSubmitting || !canSubmit}
+            />
+            {authMode === "reset" || authMode === "update-password" ? (
+              <PixelButton
+                label={t.backToSignIn}
+                onClick={() => onAuthModeChange("signin")}
+                variant="blue"
+                disabled={isAuthLoading || isAuthSubmitting}
+              />
+            ) : null}
+          </div>
+
           {billingError && <p className="billing-panel__error">{billingError}</p>}
           {authMessage && <p className="billing-panel__message">{authMessage}</p>}
         </div>

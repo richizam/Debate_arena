@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Session } from "@supabase/supabase-js";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import type { GamePhase, Battle, JudgeVerdict, Language } from "./types/battle";
 import type { BillingStatusResponse, PlanCode } from "./types/billing";
 import { normalizeBattle } from "./utils/battleNormalizer";
@@ -16,6 +16,7 @@ import DebateScreen from "./components/DebateScreen";
 import JudgeScreen from "./components/JudgeScreen";
 import ResultScreen from "./components/ResultScreen";
 import LimitScreen from "./components/LimitScreen";
+import type { AuthMode } from "./components/BillingPanel";
 
 import "./styles/reset.css";
 import "./styles/variables.css";
@@ -47,6 +48,18 @@ async function readApiErrorMessage(response: Response): Promise<string> {
   }
 }
 
+function getAuthSuccessMessage(event: AuthChangeEvent): string | null {
+  if (event === "PASSWORD_RECOVERY") {
+    return "Enter your new password to finish recovery.";
+  }
+
+  if (event === "SIGNED_IN") {
+    return null;
+  }
+
+  return null;
+}
+
 export default function App() {
   const [phase, setPhase] = useState<GamePhase>("intro");
   const [battle, setBattle] = useState<Battle | null>(null);
@@ -54,11 +67,13 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [language, setLanguage] = useState<Language>("en");
   const [session, setSession] = useState<Session | null>(null);
+  const [authMode, setAuthMode] = useState<AuthMode>("signin");
   const [authEmailInput, setAuthEmailInput] = useState("");
+  const [authPasswordInput, setAuthPasswordInput] = useState("");
   const [authMessage, setAuthMessage] = useState<string | null>(null);
   const [billingError, setBillingError] = useState<string | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
-  const [isMagicLinkSending, setIsMagicLinkSending] = useState(false);
+  const [isAuthSubmitting, setIsAuthSubmitting] = useState(false);
   const [isBillingLoading, setIsBillingLoading] = useState(false);
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState<PlanCode | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
@@ -68,6 +83,13 @@ export default function App() {
   const t = translations[language];
   const accessToken = session?.access_token ?? null;
   const userEmail = session?.user.email ?? null;
+
+  const handleAuthModeChange = useCallback((mode: AuthMode) => {
+    setAuthMode(mode);
+    setAuthMessage(null);
+    setBillingError(null);
+    setAuthPasswordInput("");
+  }, []);
 
   const fetchBillingStatus = useCallback(async (token: string) => {
     setIsBillingLoading(true);
@@ -110,6 +132,10 @@ export default function App() {
       setSession(data.session);
       setIsAuthLoading(false);
 
+      if (data.session?.user.email) {
+        setAuthEmailInput(data.session.user.email);
+      }
+
       if (data.session?.access_token) {
         void fetchBillingStatus(data.session.access_token);
       }
@@ -117,14 +143,38 @@ export default function App() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
+      setIsAuthLoading(false);
+
+      if (nextSession?.user.email) {
+        setAuthEmailInput(nextSession.user.email);
+      }
+
+      const nextMessage = getAuthSuccessMessage(event);
+      if (nextMessage) {
+        setAuthMessage(nextMessage);
+      }
+
+      if (event === "PASSWORD_RECOVERY") {
+        setAuthMode("update-password");
+        setBillingError(null);
+      } else if (event === "SIGNED_IN") {
+        setAuthMode("signin");
+        setAuthPasswordInput("");
+        setBillingError(null);
+        setAuthMessage(null);
+      } else if (event === "SIGNED_OUT") {
+        setAuthMode("signin");
+        setBillingStatus(null);
+        setBillingError(null);
+        setAuthPasswordInput("");
+      }
 
       if (nextSession?.access_token) {
         void fetchBillingStatus(nextSession.access_token);
       } else {
         setBillingStatus(null);
-        setBillingError(null);
       }
     });
 
@@ -219,20 +269,42 @@ export default function App() {
       setIsLoading(false);
       setPhase("vs");
     },
-    [accessToken, fetchBillingStatus, userEmail]
+    [accessToken, fetchBillingStatus]
   );
 
-  const handleSendMagicLink = useCallback(async () => {
-    if (!supabase || authEmailInput.trim().length === 0) {
+  const handleSignIn = useCallback(async () => {
+    if (!supabase || authEmailInput.trim().length === 0 || authPasswordInput.trim().length < 6) {
       return;
     }
 
-    setIsMagicLinkSending(true);
+    setIsAuthSubmitting(true);
     setAuthMessage(null);
     setBillingError(null);
 
-    const { error } = await supabase.auth.signInWithOtp({
+    const { error } = await supabase.auth.signInWithPassword({
       email: authEmailInput.trim(),
+      password: authPasswordInput,
+    });
+
+    if (error) {
+      setBillingError(error.message);
+    }
+
+    setIsAuthSubmitting(false);
+  }, [authEmailInput, authPasswordInput]);
+
+  const handleSignUp = useCallback(async () => {
+    if (!supabase || authEmailInput.trim().length === 0 || authPasswordInput.trim().length < 6) {
+      return;
+    }
+
+    setIsAuthSubmitting(true);
+    setAuthMessage(null);
+    setBillingError(null);
+
+    const { data, error } = await supabase.auth.signUp({
+      email: authEmailInput.trim(),
+      password: authPasswordInput,
       options: {
         emailRedirectTo: window.location.origin,
       },
@@ -240,12 +312,63 @@ export default function App() {
 
     if (error) {
       setBillingError(error.message);
+    } else if (data.session) {
+      setAuthMessage("Account created. You are signed in.");
+      setAuthPasswordInput("");
     } else {
-      setAuthMessage("Check your email for the magic link.");
+      setAuthMessage("Check your email to confirm the account before signing in.");
+      setAuthMode("signin");
+      setAuthPasswordInput("");
     }
 
-    setIsMagicLinkSending(false);
+    setIsAuthSubmitting(false);
+  }, [authEmailInput, authPasswordInput]);
+
+  const handleResetPassword = useCallback(async () => {
+    if (!supabase || authEmailInput.trim().length === 0) {
+      return;
+    }
+
+    setIsAuthSubmitting(true);
+    setAuthMessage(null);
+    setBillingError(null);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(authEmailInput.trim(), {
+      redirectTo: window.location.origin,
+    });
+
+    if (error) {
+      setBillingError(error.message);
+    } else {
+      setAuthMessage("Check your email for the password reset link.");
+    }
+
+    setIsAuthSubmitting(false);
   }, [authEmailInput]);
+
+  const handleUpdatePassword = useCallback(async () => {
+    if (!supabase || authPasswordInput.trim().length < 6) {
+      return;
+    }
+
+    setIsAuthSubmitting(true);
+    setAuthMessage(null);
+    setBillingError(null);
+
+    const { error } = await supabase.auth.updateUser({
+      password: authPasswordInput,
+    });
+
+    if (error) {
+      setBillingError(error.message);
+    } else {
+      setAuthMessage("Password updated. You can keep using the app.");
+      setAuthMode("signin");
+      setAuthPasswordInput("");
+    }
+
+    setIsAuthSubmitting(false);
+  }, [authPasswordInput]);
 
   const handleSignOut = useCallback(async () => {
     if (!supabase) {
@@ -356,18 +479,25 @@ export default function App() {
           onStart={handleStart}
           isLoading={isLoading}
           authEnabled={hasSupabaseAuthConfig}
+          authMode={authMode}
           isAuthLoading={isAuthLoading}
+          isAuthSubmitting={isAuthSubmitting}
           isBillingLoading={isBillingLoading}
-          isMagicLinkSending={isMagicLinkSending}
           checkoutLoadingPlan={checkoutLoadingPlan}
           portalLoading={portalLoading}
           userEmail={userEmail}
           authEmailInput={authEmailInput}
+          authPasswordInput={authPasswordInput}
           billingStatus={billingStatus}
           authMessage={authMessage}
           billingError={billingError}
           onAuthEmailChange={setAuthEmailInput}
-          onSendMagicLink={handleSendMagicLink}
+          onAuthPasswordChange={setAuthPasswordInput}
+          onAuthModeChange={handleAuthModeChange}
+          onSignIn={handleSignIn}
+          onSignUp={handleSignUp}
+          onResetPassword={handleResetPassword}
+          onUpdatePassword={handleUpdatePassword}
           onSignOut={handleSignOut}
           onBuyPlan={handleBuyPlan}
           onManagePlan={handleManagePlan}
@@ -379,18 +509,25 @@ export default function App() {
           onBack={handleLimitBack}
           t={t}
           authEnabled={hasSupabaseAuthConfig}
+          authMode={authMode}
           isAuthLoading={isAuthLoading}
+          isAuthSubmitting={isAuthSubmitting}
           isBillingLoading={isBillingLoading}
-          isMagicLinkSending={isMagicLinkSending}
           checkoutLoadingPlan={checkoutLoadingPlan}
           portalLoading={portalLoading}
           userEmail={userEmail}
           authEmailInput={authEmailInput}
+          authPasswordInput={authPasswordInput}
           billingStatus={billingStatus}
           authMessage={authMessage}
           billingError={billingError}
           onAuthEmailChange={setAuthEmailInput}
-          onSendMagicLink={handleSendMagicLink}
+          onAuthPasswordChange={setAuthPasswordInput}
+          onAuthModeChange={handleAuthModeChange}
+          onSignIn={handleSignIn}
+          onSignUp={handleSignUp}
+          onResetPassword={handleResetPassword}
+          onUpdatePassword={handleUpdatePassword}
           onSignOut={handleSignOut}
           onBuyPlan={handleBuyPlan}
           onManagePlan={handleManagePlan}

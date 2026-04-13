@@ -3,24 +3,32 @@ import type { Language } from "../types/battle";
 import { LANGUAGES, translations } from "../data/i18n";
 import type { BillingStatus, PlanCode } from "../types/billing";
 import BillingPanel from "./BillingPanel";
+import type { AuthMode } from "./BillingPanel";
 import PixelButton from "./PixelButton";
 
 interface IntroScreenProps {
   onStart: (player1: string, player2: string, topic: string, language: Language) => void;
   isLoading: boolean;
   authEnabled: boolean;
+  authMode: AuthMode;
   isAuthLoading: boolean;
+  isAuthSubmitting: boolean;
   isBillingLoading: boolean;
-  isMagicLinkSending: boolean;
   checkoutLoadingPlan: PlanCode | null;
   portalLoading: boolean;
   userEmail: string | null;
   authEmailInput: string;
+  authPasswordInput: string;
   billingStatus: BillingStatus | null;
   authMessage: string | null;
   billingError: string | null;
   onAuthEmailChange: (value: string) => void;
-  onSendMagicLink: () => void;
+  onAuthPasswordChange: (value: string) => void;
+  onAuthModeChange: (mode: AuthMode) => void;
+  onSignIn: () => void;
+  onSignUp: () => void;
+  onResetPassword: () => void;
+  onUpdatePassword: () => void;
   onSignOut: () => void;
   onBuyPlan: (planCode: PlanCode) => void;
   onManagePlan: () => void;
@@ -30,18 +38,25 @@ export default function IntroScreen({
   onStart,
   isLoading,
   authEnabled,
+  authMode,
   isAuthLoading,
+  isAuthSubmitting,
   isBillingLoading,
-  isMagicLinkSending,
   checkoutLoadingPlan,
   portalLoading,
   userEmail,
   authEmailInput,
+  authPasswordInput,
   billingStatus,
   authMessage,
   billingError,
   onAuthEmailChange,
-  onSendMagicLink,
+  onAuthPasswordChange,
+  onAuthModeChange,
+  onSignIn,
+  onSignUp,
+  onResetPassword,
+  onUpdatePassword,
   onSignOut,
   onBuyPlan,
   onManagePlan,
@@ -56,7 +71,6 @@ export default function IntroScreen({
 
   function handleLanguageChange(lang: Language) {
     setLanguage(lang);
-    // Reset topic so the placeholder updates to the new language default
     setTopic("");
   }
 
@@ -76,7 +90,6 @@ export default function IntroScreen({
       <div className="intro-content">
         <p className="intro-matchup">{t.epicDebateBattle}</p>
 
-        {/* Language selector */}
         <div className="lang-selector">
           {LANGUAGES.map((l) => (
             <button
@@ -155,18 +168,25 @@ export default function IntroScreen({
         <BillingPanel
           t={t}
           authEnabled={authEnabled}
+          authMode={authMode}
           isAuthLoading={isAuthLoading}
+          isAuthSubmitting={isAuthSubmitting}
           isBillingLoading={isBillingLoading}
-          isMagicLinkSending={isMagicLinkSending}
           checkoutLoadingPlan={checkoutLoadingPlan}
           portalLoading={portalLoading}
           userEmail={userEmail}
           authEmailInput={authEmailInput}
+          authPasswordInput={authPasswordInput}
           billingStatus={billingStatus}
           authMessage={authMessage}
           billingError={billingError}
           onAuthEmailChange={onAuthEmailChange}
-          onSendMagicLink={onSendMagicLink}
+          onAuthPasswordChange={onAuthPasswordChange}
+          onAuthModeChange={onAuthModeChange}
+          onSignIn={onSignIn}
+          onSignUp={onSignUp}
+          onResetPassword={onResetPassword}
+          onUpdatePassword={onUpdatePassword}
           onSignOut={onSignOut}
           onBuyPlan={onBuyPlan}
           onManagePlan={onManagePlan}

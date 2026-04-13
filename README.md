@@ -15,7 +15,7 @@ Arcade-style AI debate app built with Vite, React, Cloudflare Pages Functions, S
 
 - Frontend runs in Vite/Cloudflare Pages
 - Backend endpoints live in `functions/api/*`
-- Authenticated paid flows use Supabase magic-link auth
+- Authenticated paid flows use Supabase email/password auth
 - Billing state is stored in Supabase
 - Subscription checkout and portal sessions are created through Dodo
 
@@ -88,6 +88,10 @@ In Supabase Auth settings, configure:
 
 - Site URL: your production app URL
 - Redirect URLs: include your production app URL
+- Enable email signups
+- Keep password recovery enabled
+
+If you want public password reset emails to work reliably, configure custom SMTP in Supabase Auth.
 
 For production this project expects:
 
