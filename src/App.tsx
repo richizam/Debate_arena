@@ -107,7 +107,7 @@ export default function App() {
   const userEmail = session?.user.email ?? null;
   const authMode = useMemo(() => getAuthModeFromRoute(routePath), [routePath]);
   const isAuthRoute = routePath !== "/";
-  const showLobbyNav = isAuthRoute || phase === "intro" || phase === "limit";
+  const showLobbyNav = phase === "intro" || phase === "limit";
 
   const navigate = useCallback((path: string, replace = false) => {
     const nextPath = normalizeRoute(path);
@@ -564,15 +564,43 @@ export default function App() {
     setPhase("intro");
   }, []);
 
+  if (isAuthRoute) {
+    return (
+      <AuthPage
+        t={t}
+        authEnabled={hasSupabaseAuthConfig}
+        authMode={authMode}
+        isAuthLoading={isAuthLoading}
+        isAuthSubmitting={isAuthSubmitting}
+        isBillingLoading={isBillingLoading}
+        checkoutLoadingPlan={checkoutLoadingPlan}
+        portalLoading={portalLoading}
+        userEmail={userEmail}
+        authEmailInput={authEmailInput}
+        authPasswordInput={authPasswordInput}
+        billingStatus={billingStatus}
+        authMessage={authMessage}
+        billingError={billingError}
+        onAuthEmailChange={setAuthEmailInput}
+        onAuthPasswordChange={setAuthPasswordInput}
+        onAuthModeChange={handleAuthModeChange}
+        onSignIn={handleSignIn}
+        onSignUp={handleSignUp}
+        onResetPassword={handleResetPassword}
+        onUpdatePassword={handleUpdatePassword}
+        onSignOut={handleSignOut}
+        onBuyPlan={handleBuyPlan}
+        onManagePlan={handleManagePlan}
+        onBackToArena={() => navigate("/")}
+      />
+    );
+  }
+
   return (
     <>
       {showLobbyNav ? (
         <div className="app-auth-nav">
-          {isAuthRoute ? (
-            <button type="button" className="app-auth-nav__link" onClick={() => navigate("/")}>
-              {t.backToArena}
-            </button>
-          ) : userEmail ? (
+          {userEmail ? (
             <button type="button" className="app-auth-nav__link" onClick={() => navigate("/account")}>
               {t.accountAction}
             </button>
@@ -589,44 +617,15 @@ export default function App() {
         </div>
       ) : null}
 
-      {isAuthRoute ? (
-        <AuthPage
-          t={t}
-          authEnabled={hasSupabaseAuthConfig}
-          authMode={authMode}
-          isAuthLoading={isAuthLoading}
-          isAuthSubmitting={isAuthSubmitting}
-          isBillingLoading={isBillingLoading}
-          checkoutLoadingPlan={checkoutLoadingPlan}
-          portalLoading={portalLoading}
-          userEmail={userEmail}
-          authEmailInput={authEmailInput}
-          authPasswordInput={authPasswordInput}
-          billingStatus={billingStatus}
-          authMessage={authMessage}
-          billingError={billingError}
-          onAuthEmailChange={setAuthEmailInput}
-          onAuthPasswordChange={setAuthPasswordInput}
-          onAuthModeChange={handleAuthModeChange}
-          onSignIn={handleSignIn}
-          onSignUp={handleSignUp}
-          onResetPassword={handleResetPassword}
-          onUpdatePassword={handleUpdatePassword}
-          onSignOut={handleSignOut}
-          onBuyPlan={handleBuyPlan}
-          onManagePlan={handleManagePlan}
-        />
-      ) : null}
-
-      <div className={cn("screen", phase === "intro" && "active", isAuthRoute && "screen--hidden")}>
+      <div className={cn("screen", phase === "intro" && "active")}>
         <IntroScreen onStart={handleStart} isLoading={isLoading} />
       </div>
 
-      <div className={cn("screen", phase === "limit" && "active", isAuthRoute && "screen--hidden")}>
+      <div className={cn("screen", phase === "limit" && "active")}>
         <LimitScreen onBack={handleLimitBack} onMemberAccess={handleMemberAccess} t={t} />
       </div>
 
-      {battle && !isAuthRoute ? (
+      {battle ? (
         <>
           <div className={cn("screen", phase === "vs" && "active")}>
             <VsScreen fighters={battle.fighters} onComplete={handleVsComplete} />

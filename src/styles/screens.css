@@ -222,18 +222,27 @@
   position: relative;
   width: 100%;
   height: 100%;
+  min-height: 100vh;
+  overflow: auto;
+  background:
+    radial-gradient(circle at top left, rgba(0, 240, 255, 0.12), transparent 34%),
+    radial-gradient(circle at top right, rgba(255, 0, 255, 0.16), transparent 28%),
+    linear-gradient(180deg, #050712 0%, #070b1e 45%, #04040f 100%);
 }
 
 .auth-screen .screen-bg {
-  background-image: url("../images/debate_arena_main.jpg");
-  filter: brightness(0.5);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.02) 25%, transparent 25%) 0 0 / 28px 28px,
+    linear-gradient(315deg, rgba(255, 255, 255, 0.02) 25%, transparent 25%) 0 0 / 28px 28px;
+  opacity: 0.65;
+  filter: none;
 }
 
 .auth-overlay {
   position: absolute;
   inset: 0;
   z-index: var(--z-overlay);
-  background: rgba(2, 4, 18, 0.72);
+  background: linear-gradient(180deg, rgba(4, 6, 18, 0.4), rgba(4, 6, 18, 0.78));
 }
 
 .auth-content {
@@ -243,21 +252,50 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(var(--gap-xl) * 1.5) var(--gap-lg) var(--gap-lg);
+  padding: 24px;
 }
 
 .auth-card {
-  width: min(960px, 100%);
+  width: min(480px, 100%);
   display: flex;
   flex-direction: column;
-  gap: var(--gap-md);
+  gap: 18px;
+}
+
+.auth-card--account {
+  width: min(960px, 100%);
+}
+
+.auth-card__topbar {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.auth-card__back {
+  padding: 10px 12px;
+  border: 1px solid rgba(0, 240, 255, 0.22);
+  background: rgba(8, 10, 28, 0.72);
+  color: var(--text-primary);
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast), box-shadow var(--t-fast), background var(--t-fast);
+}
+
+.auth-card__back:hover {
+  border-color: var(--cyan);
+  color: var(--text-white);
+  box-shadow: var(--glow-cyan);
+  background: rgba(8, 10, 28, 0.92);
 }
 
 .auth-card__header {
   display: flex;
   flex-direction: column;
-  gap: var(--gap-sm);
-  text-align: center;
+  gap: 10px;
+  text-align: left;
 }
 
 .auth-card__eyebrow,
@@ -268,36 +306,46 @@
 
 .auth-card__eyebrow {
   font-family: var(--font-pixel);
-  font-size: 9px;
-  color: var(--text-dim);
-  letter-spacing: 2px;
+  font-size: 8px;
+  color: var(--cyan);
+  letter-spacing: 1px;
   text-transform: uppercase;
 }
 
 .auth-card__title {
   font-family: var(--font-pixel);
-  font-size: 18px;
+  font-size: 16px;
   color: var(--text-white);
   letter-spacing: 2px;
   text-transform: uppercase;
+  line-height: 1.5;
 }
 
 .auth-card__subtitle {
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-primary);
-  line-height: 1.7;
+  line-height: 1.65;
+  max-width: 42ch;
 }
 
 .billing-panel {
-  width: min(920px, 100%);
+  width: 100%;
   display: flex;
   flex-direction: column;
-  gap: var(--gap-md);
-  padding: var(--gap-md);
+  gap: 14px;
+  padding: 20px;
   border: 2px solid rgba(0, 240, 255, 0.4);
-  background: rgba(6, 8, 26, 0.88);
-  box-shadow: 0 0 18px rgba(0, 240, 255, 0.12);
+  background: rgba(6, 8, 26, 0.9);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.billing-panel--auth {
+  max-width: 480px;
+}
+
+.billing-panel--account {
+  max-width: 920px;
 }
 
 .billing-panel__header,
@@ -317,6 +365,26 @@
   text-transform: uppercase;
 }
 
+.billing-panel__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.billing-panel__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.billing-panel__label {
+  font-family: var(--font-pixel);
+  font-size: 8px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
 .billing-panel__subtitle,
 .billing-panel__hint,
 .billing-panel__message,
@@ -333,6 +401,10 @@
 .billing-panel__message,
 .billing-panel__account-label {
   color: var(--text-primary);
+}
+
+.billing-panel__hint {
+  color: var(--text-dim);
 }
 
 .billing-panel__account-label span {
@@ -357,18 +429,22 @@
 }
 
 .billing-panel__input {
-  min-width: 240px;
-  flex: 1 1 280px;
+  min-width: 0;
+  width: 100%;
+  flex: none;
+  font-size: 14px;
+  padding: 12px 14px;
 }
 
 .billing-panel__tabs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .billing-panel__tab {
-  padding: 8px 10px;
+  min-height: 48px;
+  padding: 10px 12px;
   border: 1px solid rgba(0, 240, 255, 0.24);
   background: rgba(255, 255, 255, 0.02);
   color: var(--text-dim);
@@ -378,6 +454,11 @@
   text-transform: uppercase;
   cursor: pointer;
   transition: border-color var(--t-fast), color var(--t-fast), background var(--t-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.5;
 }
 
 .billing-panel__tab:hover:not(:disabled) {
@@ -398,6 +479,14 @@
 
 .billing-panel__stats {
   margin-top: var(--gap-xs);
+}
+
+.billing-panel--auth .billing-panel__actions {
+  flex-direction: column;
+}
+
+.billing-panel__action-button {
+  width: 100%;
 }
 
 .billing-stat {
@@ -895,9 +984,11 @@
   .vs-names { padding: 0 5%; }
   .vs-name { font-size: 11px; }
   .intro-content { padding: var(--gap-lg) var(--gap-md); }
-  .auth-content { padding: calc(var(--gap-xl) * 1.2) var(--gap-md) var(--gap-md); }
+  .auth-content { padding: 18px; }
+  .auth-card { width: 100%; }
   .auth-card__title { font-size: 14px; }
-  .billing-panel { padding: var(--gap-sm); }
+  .billing-panel { padding: 16px; }
+  .billing-panel__tabs { grid-template-columns: 1fr; }
   .billing-panel__signin-row,
   .billing-panel__actions,
   .billing-panel__plans,

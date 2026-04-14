@@ -89,7 +89,7 @@ export default function BillingPanel({
 }: BillingPanelProps) {
   if (!authEnabled) {
     return (
-      <div className="billing-panel">
+      <div className="billing-panel billing-panel--auth">
         <p className="billing-panel__message">{t.billingUnavailable}</p>
       </div>
     );
@@ -125,14 +125,15 @@ export default function BillingPanel({
   }
 
   return (
-    <div className="billing-panel">
-      <div className="billing-panel__header">
-        <p className="billing-panel__title">{t.billingTitle}</p>
-        <p className="billing-panel__subtitle">{t.billingSubtitle}</p>
-      </div>
+    <div className={`billing-panel ${isSignedIn ? "billing-panel--account" : "billing-panel--auth"}`}>
 
       {isSignedIn ? (
         <div className="billing-panel__account">
+          <div className="billing-panel__header">
+            <p className="billing-panel__title">{t.billingTitle}</p>
+            <p className="billing-panel__subtitle">{t.billingSubtitle}</p>
+          </div>
+
           <p className="billing-panel__account-label">
             {t.signedInAs}: <span>{userEmail}</span>
           </p>
@@ -219,33 +220,35 @@ export default function BillingPanel({
             </div>
           ) : null}
 
-          {showEmailField && (
-            <>
-              <label className="intro-input-label">{t.emailLabel}</label>
-              <input
-                className="pixel-input billing-panel__input"
-                type="email"
-                placeholder={t.emailPlaceholder}
-                value={authEmailInput}
-                onChange={(event) => onAuthEmailChange(event.target.value)}
-                disabled={isAuthLoading || isAuthSubmitting}
-              />
-            </>
-          )}
+          <div className="billing-panel__form">
+            {showEmailField ? (
+              <div className="billing-panel__field">
+                <label className="billing-panel__label">{t.emailLabel}</label>
+                <input
+                  className="pixel-input billing-panel__input"
+                  type="email"
+                  placeholder={t.emailPlaceholder}
+                  value={authEmailInput}
+                  onChange={(event) => onAuthEmailChange(event.target.value)}
+                  disabled={isAuthLoading || isAuthSubmitting}
+                />
+              </div>
+            ) : null}
 
-          {showPasswordField && (
-            <>
-              <label className="intro-input-label">{t.passwordLabel}</label>
-              <input
-                className="pixel-input billing-panel__input"
-                type="password"
-                placeholder={t.passwordPlaceholder}
-                value={authPasswordInput}
-                onChange={(event) => onAuthPasswordChange(event.target.value)}
-                disabled={isAuthLoading || isAuthSubmitting}
-              />
-            </>
-          )}
+            {showPasswordField ? (
+              <div className="billing-panel__field">
+                <label className="billing-panel__label">{t.passwordLabel}</label>
+                <input
+                  className="pixel-input billing-panel__input"
+                  type="password"
+                  placeholder={t.passwordPlaceholder}
+                  value={authPasswordInput}
+                  onChange={(event) => onAuthPasswordChange(event.target.value)}
+                  disabled={isAuthLoading || isAuthSubmitting}
+                />
+              </div>
+            ) : null}
+          </div>
 
           <p className="billing-panel__hint">
             {authMode === "signup"
@@ -257,10 +260,14 @@ export default function BillingPanel({
                   : t.signInHint}
           </p>
 
+          {billingError && <p className="billing-panel__error">{billingError}</p>}
+          {authMessage && <p className="billing-panel__message">{authMessage}</p>}
+
           <div className="billing-panel__actions">
             <PixelButton
               label={getSubmitLabel(t, authMode, isAuthSubmitting)}
               onClick={handleSubmit}
+              className="billing-panel__action-button"
               disabled={isAuthLoading || isAuthSubmitting || !canSubmit}
             />
             {authMode === "reset" || authMode === "update-password" ? (
@@ -268,13 +275,11 @@ export default function BillingPanel({
                 label={t.backToSignIn}
                 onClick={() => onAuthModeChange("signin")}
                 variant="blue"
+                className="billing-panel__action-button"
                 disabled={isAuthLoading || isAuthSubmitting}
               />
             ) : null}
           </div>
-
-          {billingError && <p className="billing-panel__error">{billingError}</p>}
-          {authMessage && <p className="billing-panel__message">{authMessage}</p>}
         </div>
       )}
     </div>

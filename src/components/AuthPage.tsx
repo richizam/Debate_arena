@@ -28,6 +28,7 @@ interface AuthPageProps {
   onSignOut: () => void;
   onBuyPlan: (planCode: PlanCode) => void;
   onManagePlan: () => void;
+  onBackToArena: () => void;
 }
 
 function getPageTitle(t: Translations, authMode: AuthMode, userEmail: string | null): string {
@@ -73,15 +74,23 @@ function getPageSubtitle(t: Translations, authMode: AuthMode, userEmail: string 
 export default function AuthPage(props: AuthPageProps) {
   const title = getPageTitle(props.t, props.authMode, props.userEmail);
   const subtitle = getPageSubtitle(props.t, props.authMode, props.userEmail);
+  const eyebrow = props.userEmail ? props.t.accountAction : props.t.billingTitle;
+  const cardClassName = props.userEmail ? "auth-card auth-card--account" : "auth-card auth-card--auth";
 
   return (
     <div className="auth-screen">
       <div className="screen-bg" />
       <div className="auth-overlay" />
       <div className="auth-content">
-        <div className="auth-card">
+        <div className={cardClassName}>
+          <div className="auth-card__topbar">
+            <button type="button" className="auth-card__back" onClick={props.onBackToArena}>
+              {props.t.backToArena}
+            </button>
+          </div>
+
           <div className="auth-card__header">
-            <p className="auth-card__eyebrow">{props.t.epicDebateBattle}</p>
+            <p className="auth-card__eyebrow">{eyebrow}</p>
             <h1 className="auth-card__title">{title}</h1>
             <p className="auth-card__subtitle">{subtitle}</p>
           </div>
