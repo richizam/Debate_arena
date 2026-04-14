@@ -32,6 +32,10 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return jsonResponse({ ok: true, duplicate: true });
   }
 
+  if (reserved === "processing") {
+    return jsonResponse({ ok: true, processing: true });
+  }
+
   try {
     const paymentContext = getWebhookPaymentContext(verified.event);
 

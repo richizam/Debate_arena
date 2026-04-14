@@ -118,7 +118,7 @@ export async function createCheckoutSession(
   }
 
   const successUrl =
-    env.DODO_RETURN_URL_SUCCESS ?? `${input.origin.replace(/\/+$/, "")}/billing/success`;
+    env.DODO_RETURN_URL_SUCCESS ?? `${input.origin.replace(/\/+$/, "")}/account`;
 
   return dodoRequest<DodoCheckoutResponse>(env, "/checkouts", {
     method: "POST",
@@ -150,7 +150,7 @@ export async function createPortalSession(
   }
 ): Promise<DodoPortalResponse> {
   const returnUrl =
-    env.DODO_PORTAL_RETURN_URL ?? `${input.origin.replace(/\/+$/, "")}/billing`;
+    env.DODO_PORTAL_RETURN_URL ?? `${input.origin.replace(/\/+$/, "")}/account`;
 
   return dodoRequest<DodoPortalResponse>(env, `/customers/${input.customerId}/portal/session`, {
     method: "POST",

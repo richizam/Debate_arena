@@ -3,6 +3,7 @@ node_modules/
 
 # Build output
 dist/
+.test-build/
 
 # Secret environment files (NEVER commit these)
 .dev.vars

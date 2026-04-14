@@ -1,4 +1,4 @@
-import type { User } from "@supabase/supabase-js";
+import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { Env } from "./env";
 import { getSupabaseAdmin } from "./supabase";
 import type { PlanCode } from "./plans";
@@ -22,6 +22,11 @@ interface SubscriptionRecord {
   cancel_at_period_end: boolean;
   created_at: string;
   updated_at: string;
+}
+
+interface WebhookEventRecord {
+  dodo_event_id: string;
+  processing_status: string;
 }
 
 interface LedgerInsertInput {
@@ -67,14 +72,13 @@ export interface SubscriptionStatusUpdateInput {
   cancelAtPeriodEnd: boolean;
 }
 
+export type WebhookReservationResult = "new" | "duplicate" | "retry" | "processing";
+
+type AdminFromClient = Pick<SupabaseClient, "from">;
+type AdminRpcClient = Pick<SupabaseClient, "rpc">;
+
 function nowIso(): string {
   return new Date().toISOString();
-}
-
-function addDays(isoTimestamp: string, days: number): string {
-  const date = new Date(isoTimestamp);
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString();
 }
 
 export async function ensureUserRecords(env: Env, user: Pick<User, "id" | "email">): Promise<void> {
@@ -294,50 +298,7 @@ export async function grantCreditsFromPayment(
   input: GrantCreditsInput
 ): Promise<void> {
   const admin = getSupabaseAdmin(env);
-
-  await ensureUserRecords(env, {
-    id: input.userId,
-    email: input.email,
-  });
-
-  const activeWallet = await expireWalletIfNeeded(env, input.userId);
-  const nextBalance = activeWallet.credits_balance + input.credits;
-  const nextExpiresAt = addDays(input.eventTimestamp, 30);
-
-  const { error: walletError } = await admin
-    .from("credit_wallets")
-    .update({
-      credits_balance: nextBalance,
-      expires_at: nextExpiresAt,
-      current_plan_code: input.planCode,
-      updated_at: nowIso(),
-    })
-    .eq("user_id", input.userId);
-
-  if (walletError) {
-    throw new Error(`Failed to grant credits: ${walletError.message}`);
-  }
-
-  await insertLedgerEntry(env, {
-    userId: input.userId,
-    delta: input.credits,
-    reason: "subscription_payment",
-    dodoPaymentId: input.paymentId,
-    dodoSubscriptionId: input.subscriptionId,
-    resultingBalance: nextBalance,
-    resultingExpiresAt: nextExpiresAt,
-  });
-
-  await upsertSubscription(env, {
-    userId: input.userId,
-    email: input.email,
-    planCode: input.planCode,
-    subscriptionId: input.subscriptionId,
-    customerId: input.customerId,
-    status: input.status,
-    currentPeriodEnd: input.currentPeriodEnd,
-    cancelAtPeriodEnd: input.cancelAtPeriodEnd,
-  });
+  await grantCreditsFromPaymentWithAdmin(admin, input);
 }
 
 export async function updateSubscriptionStatus(
@@ -352,13 +313,35 @@ export async function updateSubscriptionStatus(
   await upsertSubscription(env, input);
 }
 
-export async function reserveWebhookEvent(
-  env: Env,
+export async function grantCreditsFromPaymentWithAdmin(
+  admin: AdminRpcClient,
+  input: GrantCreditsInput
+): Promise<void> {
+  const { error } = await admin.rpc("apply_subscription_payment", {
+    p_user_id: input.userId,
+    p_email: input.email,
+    p_plan_code: input.planCode,
+    p_credits: input.credits,
+    p_payment_id: input.paymentId,
+    p_subscription_id: input.subscriptionId,
+    p_customer_id: input.customerId,
+    p_status: input.status,
+    p_current_period_end: input.currentPeriodEnd,
+    p_cancel_at_period_end: input.cancelAtPeriodEnd,
+    p_event_timestamp: input.eventTimestamp,
+  });
+
+  if (error) {
+    throw new Error(`Failed to grant credits: ${error.message}`);
+  }
+}
+
+export async function reserveWebhookEventWithAdmin(
+  admin: AdminFromClient,
   eventId: string,
   eventType: string,
   payload: unknown
-): Promise<"new" | "duplicate"> {
-  const admin = getSupabaseAdmin(env);
+): Promise<WebhookReservationResult> {
   const { error } = await admin.from("billing_webhook_events").insert({
     dodo_event_id: eventId,
     event_type: eventType,
@@ -370,11 +353,55 @@ export async function reserveWebhookEvent(
     return "new";
   }
 
-  if (error.code === "23505") {
+  if (error.code !== "23505") {
+    throw new Error(`Failed to reserve webhook event: ${error.message}`);
+  }
+
+  const { data: existing, error: existingError } = await admin
+    .from("billing_webhook_events")
+    .select("dodo_event_id, processing_status")
+    .eq("dodo_event_id", eventId)
+    .maybeSingle<WebhookEventRecord>();
+
+  if (existingError) {
+    throw new Error(`Failed to load reserved webhook event: ${existingError.message}`);
+  }
+
+  if (!existing) {
     return "duplicate";
   }
 
-  throw new Error(`Failed to reserve webhook event: ${error.message}`);
+  if (existing.processing_status === "failed") {
+    const { data: retried, error: retryError } = await admin
+      .from("billing_webhook_events")
+      .update({
+        processing_status: "processing",
+        processed_at: null,
+        error_text: null,
+      })
+      .eq("dodo_event_id", eventId)
+      .eq("processing_status", "failed")
+      .select("dodo_event_id, processing_status")
+      .maybeSingle<WebhookEventRecord>();
+
+    if (retryError) {
+      throw new Error(`Failed to retry reserved webhook event: ${retryError.message}`);
+    }
+
+    return retried ? "retry" : "processing";
+  }
+
+  return existing.processing_status === "processing" ? "processing" : "duplicate";
+}
+
+export async function reserveWebhookEvent(
+  env: Env,
+  eventId: string,
+  eventType: string,
+  payload: unknown
+): Promise<WebhookReservationResult> {
+  const admin = getSupabaseAdmin(env);
+  return reserveWebhookEventWithAdmin(admin, eventId, eventType, payload);
 }
 
 export async function markWebhookProcessed(
