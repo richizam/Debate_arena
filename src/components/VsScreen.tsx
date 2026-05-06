@@ -8,7 +8,7 @@ interface VsScreenProps {
 
 export default function VsScreen({ fighters, onComplete }: VsScreenProps) {
   useEffect(() => {
-    const id = setTimeout(onComplete, 2200);
+    const id = setTimeout(onComplete, 2400);
     return () => clearTimeout(id);
   }, [onComplete]);
 
@@ -18,6 +18,8 @@ export default function VsScreen({ fighters, onComplete }: VsScreenProps) {
     <div className="vs-screen">
       <div className="screen-bg" />
       <div className="vs-overlay" />
+
+      <span className="vs-center-word">VS</span>
 
       <div className="vs-names">
         <span className="vs-name vs-name--a">{a.name}</span>

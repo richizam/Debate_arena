@@ -4,19 +4,27 @@ import type { Env } from "../_shared/env";
 import { errorResponse, jsonResponse, readJson } from "../_shared/http";
 import { getSupabaseAdmin } from "../_shared/supabase";
 
-interface VoteBody {
-  topic?: unknown;
-  winner?: unknown;
-  userVote?: unknown;
-  sharedBattleId?: unknown;
+interface TrackBody {
+  event?: unknown;
+  props?: unknown;
 }
 
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX_PER_WINDOW = 30;
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+const ALLOWED_EVENTS = new Set([
+  "suggestion_shown",
+  "suggestion_clicked",
+  "battle_started",
+  "battle_completed",
+  "vote",
+  "share_clicked",
+  "share_claim_attempted",
+  "limit_reached",
+  "plan_clicked",
+  "checkout_started",
+]);
 
-const MAX_TOPIC_LENGTH = 200;
-const VALID_SHARED_ID = /^[a-f0-9]{6,32}$/;
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_PER_WINDOW = 60;
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
 function getClientIp(request: Request): string {
   return (
@@ -38,41 +46,68 @@ async function hashIp(ip: string): Promise<string> {
 function isRateLimited(ip: string): boolean {
   const now = Date.now();
   const bucket = rateBuckets.get(ip);
+
   if (!bucket || bucket.resetAt <= now) {
     rateBuckets.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS });
     return false;
   }
+
   if (bucket.count >= RATE_MAX_PER_WINDOW) {
     return true;
   }
+
   bucket.count += 1;
   return false;
+}
+
+function sanitizeProps(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+
+  const result: Record<string, unknown> = {};
+  let count = 0;
+
+  for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+    if (count >= 16) {
+      break;
+    }
+    if (typeof key !== "string" || key.length > 64) {
+      continue;
+    }
+    if (
+      raw === null ||
+      typeof raw === "boolean" ||
+      typeof raw === "number" ||
+      (typeof raw === "string" && raw.length <= 200)
+    ) {
+      result[key] = raw;
+      count += 1;
+    }
+  }
+
+  return result;
 }
 
 export const onRequestOptions: PagesFunction = async () => optionsResponse();
 
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const ip = getClientIp(context.request);
+
   if (isRateLimited(ip)) {
-    return errorResponse(429, "rate_limited", "Too many votes.");
+    return errorResponse(429, "rate_limited", "Too many tracking events.");
   }
 
-  let body: VoteBody;
+  let body: TrackBody;
   try {
-    body = await readJson<VoteBody>(context.request);
+    body = await readJson<TrackBody>(context.request);
   } catch {
     return errorResponse(400, "invalid_json", "Invalid JSON body.");
   }
 
-  const topic = typeof body.topic === "string" ? body.topic.trim().slice(0, MAX_TOPIC_LENGTH) : "";
-  const winner = body.winner === "a" || body.winner === "b" ? body.winner : null;
-  const userVote = body.userVote === "a" || body.userVote === "b" ? body.userVote : null;
-  const sharedBattleIdRaw = typeof body.sharedBattleId === "string" ? body.sharedBattleId.toLowerCase() : null;
-  const sharedBattleId =
-    sharedBattleIdRaw && VALID_SHARED_ID.test(sharedBattleIdRaw) ? sharedBattleIdRaw : null;
-
-  if (!topic || !winner || !userVote) {
-    return errorResponse(400, "invalid_vote", "Vote payload is malformed.");
+  const event = typeof body.event === "string" ? body.event : null;
+  if (!event || !ALLOWED_EVENTS.has(event)) {
+    return errorResponse(400, "invalid_event", "Unknown event name.");
   }
 
   if (!context.env.SUPABASE_URL || !context.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -84,21 +119,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const admin = getSupabaseAdmin(context.env);
-    const { error } = await admin.from("votes").insert({
+    const { error } = await admin.from("analytics_events").insert({
+      event,
+      props_json: sanitizeProps(body.props),
       user_id: auth?.user.id ?? null,
-      topic,
-      judge_winner: winner,
-      user_vote: userVote,
-      shared_battle_id: sharedBattleId,
       ip_hash: ipHash,
     });
 
     if (error) {
-      console.warn("vote insert failed:", error.message);
+      console.warn("analytics insert failed:", error.message);
       return jsonResponse({ ok: true, persisted: false });
     }
   } catch (error) {
-    console.warn("vote insert threw:", error);
+    console.warn("analytics insert threw:", error);
     return jsonResponse({ ok: true, persisted: false });
   }
 

@@ -8,6 +8,7 @@ import { translations } from "./data/i18n";
 import { cn } from "./utils/classNames";
 import { getApiUrl } from "./utils/api";
 import { hasUsedDailyDebate, markDailyDebateUsed } from "./utils/dailyLimit";
+import { consumeShareBonus } from "./utils/shareBonus";
 import { hasSupabaseAuthConfig, supabase } from "./utils/supabase";
 
 import IntroScreen from "./components/IntroScreen";
@@ -17,6 +18,7 @@ import DebateScreen from "./components/DebateScreen";
 import JudgeScreen from "./components/JudgeScreen";
 import ResultScreen from "./components/ResultScreen";
 import LimitScreen from "./components/LimitScreen";
+import MuteToggle from "./components/MuteToggle";
 import type { AuthMode } from "./components/BillingPanel";
 
 import "./styles/reset.css";
@@ -100,6 +102,8 @@ export default function App() {
   const [checkoutLoadingPlan, setCheckoutLoadingPlan] = useState<PlanCode | null>(null);
   const [portalLoading, setPortalLoading] = useState(false);
   const [billingStatus, setBillingStatus] = useState<BillingStatusResponse | null>(null);
+  const [sharedView, setSharedView] = useState(false);
+  const [sharedLoadError, setSharedLoadError] = useState<string | null>(null);
   const abortRef = useRef<AbortController>(new AbortController());
 
   const t = translations[language];
@@ -131,6 +135,52 @@ export default function App() {
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+    const params = new URLSearchParams(window.location.search);
+    const matchId = params.get("match");
+    if (!matchId || !/^[a-f0-9]{6,32}$/.test(matchId)) {
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(getApiUrl(`/api/get-battle?id=${encodeURIComponent(matchId)}`));
+        if (!res.ok) {
+          if (!cancelled) {
+            setSharedLoadError(translations.en.sharedBattleNotFound);
+          }
+          return;
+        }
+        const raw = (await res.json()) as Record<string, unknown>;
+        if (cancelled) {
+          return;
+        }
+        const langValue = typeof raw.language === "string" ? (raw.language as Language) : "en";
+        const normalized = normalizeBattle(raw);
+        setBattle(normalized);
+        setVerdict(normalized.judge);
+        setLanguage(langValue);
+        setSharedView(true);
+        setPhase("result");
+        const url = new URL(window.location.href);
+        url.searchParams.delete("match");
+        window.history.replaceState({}, "", url.pathname + (url.search ? url.search : ""));
+      } catch {
+        if (!cancelled) {
+          setSharedLoadError(translations.en.sharedBattleNotFound);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const fetchBillingStatus = useCallback(async (token: string) => {
@@ -270,16 +320,27 @@ export default function App() {
   );
 
   const handleStart = useCallback(
-    async (player1: string, player2: string, topic: string, lang: Language) => {
+    async (
+      player1: string,
+      player2: string,
+      topic: string,
+      lang: Language,
+      liveContext: boolean
+    ) => {
       abortRef.current.abort();
       abortRef.current = new AbortController();
 
       const isSignedIn = Boolean(accessToken);
+      let bonusUsed = false;
 
       if (!isSignedIn && hasUsedDailyDebate()) {
-        setLanguage(lang);
-        setPhase("limit");
-        return;
+        if (consumeShareBonus()) {
+          bonusUsed = true;
+        } else {
+          setLanguage(lang);
+          setPhase("limit");
+          return;
+        }
       }
 
       setLanguage(lang);
@@ -305,6 +366,7 @@ export default function App() {
             fighterBName: player2,
             topic,
             language: lang,
+            liveContext,
           }),
           signal: abortRef.current.signal,
         });
@@ -331,7 +393,7 @@ export default function App() {
         const normalized = normalizeBattle(raw);
         setBattle(normalized);
 
-        if (!isSignedIn) {
+        if (!isSignedIn && !bonusUsed) {
           markDailyDebateUsed();
         }
       } catch (err) {
@@ -348,7 +410,9 @@ export default function App() {
 
         console.warn("Debate API failed, using fallback battle:", err);
         setBattle(createFallbackBattle(player1, player2, topic));
-        markDailyDebateUsed();
+        if (!bonusUsed) {
+          markDailyDebateUsed();
+        }
       }
 
       setIsLoading(false);
@@ -561,6 +625,8 @@ export default function App() {
     setBattle(null);
     setVerdict(null);
     setIsLoading(false);
+    setSharedView(false);
+    setSharedLoadError(null);
     setPhase("intro");
   }, []);
 
@@ -598,6 +664,7 @@ export default function App() {
 
   return (
     <>
+      <MuteToggle t={t} />
       {showLobbyNav ? (
         <div className="app-auth-nav">
           {userEmail ? (
@@ -654,10 +721,19 @@ export default function App() {
           </div>
 
           <div className={cn("screen", phase === "result" && "active")}>
-            {phase === "result" ? <ResultScreen battle={battle} onRestart={handleRestart} t={t} /> : null}
+            {phase === "result" ? (
+              <ResultScreen
+                battle={battle}
+                language={language}
+                sharedView={sharedView}
+                onRestart={handleRestart}
+                t={t}
+              />
+            ) : null}
           </div>
         </>
       ) : null}
+      {sharedLoadError ? <p className="shared-error-toast">{sharedLoadError}</p> : null}
     </>
   );
 }

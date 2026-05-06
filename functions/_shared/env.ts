@@ -12,12 +12,15 @@ export interface Env {
   DODO_RETURN_URL_SUCCESS?: string;
   DODO_RETURN_URL_CANCEL?: string;
   DODO_PORTAL_RETURN_URL?: string;
+  XAI_API_KEY?: string;
+  XAI_API_BASE_URL?: string;
+  LIVE_CONTEXT_KV?: KVNamespace;
 }
 
 export function requireEnv(env: Env, key: keyof Env): string {
   const value = env[key];
 
-  if (!value) {
+  if (typeof value !== "string" || value.length === 0) {
     throw new Error(`Missing required environment variable: ${key}`);
   }
 

@@ -1,0 +1,46 @@
+Problems to solve in Debate Arena
+
+1. Cold-start topic problem
+Users arrive at the Intro Screen and may not know what to type into Fighter A, Fighter B, and Topic. The current flow depends on the user already having a funny or interesting debate idea.
+
+2. Generic debate problem
+If users type common evergreen inputs like “Messi vs Cristiano” or “iPhone vs Android,” the app works, but the experience may feel generic and not timely enough to drive repeated use.
+
+3. Live-context problem
+If users type something current, for example “TheGrefg vs Rubius latest drama,” DeepSeek does not automatically know what is happening right now on X/Twitter. Without live context, the generated debate may be generic, outdated, or forced to invent context.
+
+4. Trend discovery problem
+The app currently has no automated way to discover what people are talking about right now in gaming, streamers, football, music, memes, pop culture, or internet drama.
+
+5. Suggestion/autofill problem
+The Intro Screen does not yet provide clickable battle suggestions that auto-fill Fighter A, Fighter B, and Topic. This creates friction because users must invent the full debate setup manually.
+
+6. Context enrichment problem
+The backend currently sends the user’s raw fighters/topic directly to DeepSeek. For trend-based or current-event debates, we need an optional context-research step before calling DeepSeek.
+
+7. Cost-control problem
+Using Grok/xAI X Search for every debate would be too expensive and slow. Live search should only run when needed, and results should be cached.
+
+8. Cache problem
+If multiple users ask for the same current topic, for example “Rubius vs TheGrefg,” the system should not pay for X Search repeatedly. It should reuse a cached context pack with a short TTL.
+
+9. Latency problem
+Calling X Search during every user-generated battle would add latency before the VS Screen. We need to avoid slowing down normal battles that do not need live context.
+
+10. Billing-margin problem
+The app charges around $0.16 per debate on the Starter plan ($3.99 / 25 debates). DeepSeek generation is cheap, but adding live X Search can add around $0.01–$0.03 per live-context debate if uncached. This must be controlled.
+
+11. Safety/rumor problem
+X/Twitter content may include rumors, harassment, accusations, doxxing, or unverified claims. Any live context passed to DeepSeek must distinguish public facts, public discourse, uncertain claims, and topics to avoid.
+
+12. Product-positioning problem
+The core game is already built and should not be replaced. The correct addition is not a separate full “home feed” flow, but lightweight “Suggested Battles” and optional “Live Context” inside or before the existing Intro → Start Battle flow.
+
+13. Retention problem
+If users always see the same static debate ideas, the app may feel like a one-time toy. Fresh trending suggestions can make the app feel alive and worth reopening.
+
+14. Viral-share problem
+Debates based on current topics are more likely to be shared because users already recognize the context. Generic debates are less likely to feel urgent or socially relevant.
+
+15. Measurement problem
+We need to track which suggestions are clicked, which ones lead to Start Battle, which ones convert to paid usage, and whether live-context battles perform better than normal battles.

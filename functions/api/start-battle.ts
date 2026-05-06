@@ -1,7 +1,9 @@
 import { getOptionalAuthenticatedUser } from "../_shared/auth";
 import { consumeBattleCredit, getBillingStatus } from "../_shared/billing";
+import { buildEnrichedSystemPrompt } from "../_shared/contextPrompt";
 import { optionsResponse } from "../_shared/cors";
 import type { Env } from "../_shared/env";
+import { getContextPack, type ContextPack } from "../_shared/grok";
 import { errorResponse, jsonResponse, readJson } from "../_shared/http";
 
 interface RequestBody {
@@ -9,6 +11,7 @@ interface RequestBody {
   fighterBName: string;
   topic: string;
   language: string;
+  liveContext?: boolean;
 }
 
 interface DeepSeekResponse {
@@ -39,7 +42,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     return errorResponse(400, "invalid_json", "Invalid JSON body.");
   }
 
-  const { fighterAName, fighterBName, topic, language } = body;
+  const { fighterAName, fighterBName, topic, language, liveContext } = body;
   const langName = LANGUAGE_NAMES[language] ?? "English";
   const apiKey = context.env.DEEPSEEK_API_KEY;
 
@@ -63,7 +66,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
   }
 
-  const systemPrompt = `You are scripting a LIVE argument between two real people for a debate game. This is NOT a formal debate — it is a heated, reactive, personal argument where each person directly responds to what the other just said.
+  let contextPack: ContextPack | null = null;
+  if (liveContext === true && context.env.XAI_API_KEY) {
+    try {
+      contextPack = await getContextPack(context.env, {
+        lang: language,
+        topic,
+        fighterA: fighterAName,
+        fighterB: fighterBName,
+      });
+    } catch (contextError) {
+      console.warn("Live context fetch failed, falling back to vanilla flow:", contextError);
+      contextPack = null;
+    }
+  }
+
+  const baseSystemPrompt = `You are scripting a LIVE argument between two real people for a debate game. This is NOT a formal debate — it is a heated, reactive, personal argument where each person directly responds to what the other just said.
 
 REACTIVITY IS THE #1 RULE:
 - Every single line must directly react to the previous line. If A said "my 8 Ballon d'Ors prove I'm the best", B must address THAT claim — mock it, counter it, flip it, or expose a flaw in it. B cannot just pivot to their own talking points as if A said nothing.
@@ -78,6 +96,10 @@ AUTHENTICITY RULES:
 LANGUAGE: Write everything in ${langName} only.
 
 Respond with valid JSON only. No markdown, no code fences.`;
+
+  const systemPrompt = contextPack
+    ? buildEnrichedSystemPrompt(baseSystemPrompt, contextPack)
+    : baseSystemPrompt;
 
   const userPrompt = `Write a reactive, escalating argument between these two people:
 
@@ -160,14 +182,21 @@ Respond with this EXACT JSON (no other text):
       }
     }
 
-    return jsonResponse(
-      auth
-        ? {
-            ...(battle as Record<string, unknown>),
-            _billing: remainingBilling,
-          }
-        : battle
-    );
+    const liveContextMeta = contextPack
+      ? {
+          applied: true,
+          freshness: contextPack.freshness,
+          sources: contextPack.sourcesCount,
+        }
+      : { applied: false };
+
+    const battleResponse = {
+      ...(battle as Record<string, unknown>),
+      _liveContext: liveContextMeta,
+      ...(auth ? { _billing: remainingBilling } : {}),
+    };
+
+    return jsonResponse(battleResponse);
   } catch (err) {
     console.error("start-battle function error:", err);
     return errorResponse(502, "battle_generation_failed", "Failed to generate debate.");

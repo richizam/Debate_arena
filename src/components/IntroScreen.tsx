@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Language } from "../types/battle";
 import { LANGUAGES, translations } from "../data/i18n";
+import { track } from "../utils/analytics";
+import type { SuggestedBattle } from "../utils/suggestions";
 import PixelButton from "./PixelButton";
+import SuggestionRow from "./SuggestionRow";
 
 interface IntroScreenProps {
-  onStart: (player1: string, player2: string, topic: string, language: Language) => void;
+  onStart: (
+    player1: string,
+    player2: string,
+    topic: string,
+    language: Language,
+    liveContext: boolean
+  ) => void;
   isLoading: boolean;
 }
 
@@ -13,18 +22,66 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
   const [player1, setPlayer1] = useState("");
   const [player2, setPlayer2] = useState("");
   const [topic, setTopic] = useState("");
+  const [activeSuggestion, setActiveSuggestion] = useState<SuggestedBattle | null>(null);
+  const shownLangsRef = useRef<Set<Language>>(new Set());
 
   const t = translations[language];
   const canStart = player1.trim().length > 0 && player2.trim().length > 0 && !isLoading;
 
+  useEffect(() => {
+    if (shownLangsRef.current.has(language)) {
+      return;
+    }
+    shownLangsRef.current.add(language);
+    void track("suggestion_shown", { lang: language });
+  }, [language]);
+
   function handleLanguageChange(lang: Language) {
     setLanguage(lang);
     setTopic("");
+    setActiveSuggestion(null);
+  }
+
+  function handlePickSuggestion(battle: SuggestedBattle) {
+    setPlayer1(battle.fighterA);
+    setPlayer2(battle.fighterB);
+    setTopic(battle.topic);
+    setActiveSuggestion(battle);
+    void track("suggestion_clicked", {
+      id: battle.id,
+      lang: battle.lang,
+      isLive: battle.isLive,
+    });
+  }
+
+  function fieldsMatchSuggestion(suggestion: SuggestedBattle | null): suggestion is SuggestedBattle {
+    if (!suggestion) {
+      return false;
+    }
+    return (
+      suggestion.fighterA === player1.trim() &&
+      suggestion.fighterB === player2.trim() &&
+      (suggestion.topic === topic.trim() || (!topic.trim() && suggestion.topic === t.defaultTopic))
+    );
   }
 
   function handleSubmit() {
     if (!canStart) return;
-    onStart(player1.trim(), player2.trim(), topic.trim() || t.defaultTopic, language);
+    const matched = fieldsMatchSuggestion(activeSuggestion) ? activeSuggestion : null;
+    const liveContext = matched?.isLive ?? false;
+    void track("battle_started", {
+      source: matched ? "suggestion" : "manual",
+      lang: language,
+      isLive: liveContext,
+      suggestionId: matched?.id ?? null,
+    });
+    onStart(
+      player1.trim(),
+      player2.trim(),
+      topic.trim() || t.defaultTopic,
+      language,
+      liveContext
+    );
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -52,6 +109,14 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
             </button>
           ))}
         </div>
+
+        <SuggestionRow
+          language={language}
+          heading={t.suggestionsHeading}
+          liveLabel={t.liveTag}
+          disabled={isLoading}
+          onPick={handlePickSuggestion}
+        />
 
         <div className="intro-inputs">
           <div className="intro-input-row">

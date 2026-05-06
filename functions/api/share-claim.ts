@@ -4,19 +4,16 @@ import type { Env } from "../_shared/env";
 import { errorResponse, jsonResponse, readJson } from "../_shared/http";
 import { getSupabaseAdmin } from "../_shared/supabase";
 
-interface VoteBody {
-  topic?: unknown;
-  winner?: unknown;
-  userVote?: unknown;
-  sharedBattleId?: unknown;
+interface ShareClaimBody {
+  battleHash?: unknown;
+  surface?: unknown;
 }
 
-const RATE_WINDOW_MS = 60_000;
-const RATE_MAX_PER_WINDOW = 30;
-const rateBuckets = new Map<string, { count: number; resetAt: number }>();
+const ALLOWED_SURFACES = new Set(["limit", "result"]);
 
-const MAX_TOPIC_LENGTH = 200;
-const VALID_SHARED_ID = /^[a-f0-9]{6,32}$/;
+const RATE_WINDOW_MS = 60_000;
+const RATE_MAX_PER_WINDOW = 12;
+const rateBuckets = new Map<string, { count: number; resetAt: number }>();
 
 function getClientIp(request: Request): string {
   return (
@@ -54,26 +51,27 @@ export const onRequestOptions: PagesFunction = async () => optionsResponse();
 export const onRequestPost: PagesFunction<Env> = async (context) => {
   const ip = getClientIp(context.request);
   if (isRateLimited(ip)) {
-    return errorResponse(429, "rate_limited", "Too many votes.");
+    return errorResponse(429, "rate_limited", "Too many share claims.");
   }
 
-  let body: VoteBody;
+  let body: ShareClaimBody;
   try {
-    body = await readJson<VoteBody>(context.request);
+    body = await readJson<ShareClaimBody>(context.request);
   } catch {
     return errorResponse(400, "invalid_json", "Invalid JSON body.");
   }
 
-  const topic = typeof body.topic === "string" ? body.topic.trim().slice(0, MAX_TOPIC_LENGTH) : "";
-  const winner = body.winner === "a" || body.winner === "b" ? body.winner : null;
-  const userVote = body.userVote === "a" || body.userVote === "b" ? body.userVote : null;
-  const sharedBattleIdRaw = typeof body.sharedBattleId === "string" ? body.sharedBattleId.toLowerCase() : null;
-  const sharedBattleId =
-    sharedBattleIdRaw && VALID_SHARED_ID.test(sharedBattleIdRaw) ? sharedBattleIdRaw : null;
+  const battleHash =
+    typeof body.battleHash === "string" && body.battleHash.length > 0 && body.battleHash.length <= 96
+      ? body.battleHash
+      : null;
 
-  if (!topic || !winner || !userVote) {
-    return errorResponse(400, "invalid_vote", "Vote payload is malformed.");
+  if (!battleHash) {
+    return errorResponse(400, "invalid_battle_hash", "Missing or oversized battle hash.");
   }
+
+  const surfaceRaw = typeof body.surface === "string" ? body.surface : "";
+  const surface = ALLOWED_SURFACES.has(surfaceRaw) ? surfaceRaw : "result";
 
   if (!context.env.SUPABASE_URL || !context.env.SUPABASE_SERVICE_ROLE_KEY) {
     return jsonResponse({ ok: true, persisted: false });
@@ -84,21 +82,22 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   try {
     const admin = getSupabaseAdmin(context.env);
-    const { error } = await admin.from("votes").insert({
+    const { error } = await admin.from("share_claims").insert({
       user_id: auth?.user.id ?? null,
-      topic,
-      judge_winner: winner,
-      user_vote: userVote,
-      shared_battle_id: sharedBattleId,
+      battle_hash: battleHash,
       ip_hash: ipHash,
+      surface,
     });
 
     if (error) {
-      console.warn("vote insert failed:", error.message);
+      if (error.code === "23505") {
+        return jsonResponse({ ok: true, persisted: true, duplicate: true });
+      }
+      console.warn("share-claim insert failed:", error.message);
       return jsonResponse({ ok: true, persisted: false });
     }
   } catch (error) {
-    console.warn("vote insert threw:", error);
+    console.warn("share-claim threw:", error);
     return jsonResponse({ ok: true, persisted: false });
   }
 

@@ -30,6 +30,64 @@
   justify-content: flex-end;
 }
 
+.mute-toggle {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  z-index: 60;
+  padding: 8px 10px;
+  border: 1px solid rgba(0, 240, 255, 0.24);
+  background: rgba(6, 8, 26, 0.82);
+  color: var(--cyan);
+  font-family: var(--font-pixel);
+  font-size: 7px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: border-color var(--t-fast), color var(--t-fast), box-shadow var(--t-fast);
+}
+
+.mute-toggle:hover {
+  border-color: var(--cyan);
+  box-shadow: var(--glow-cyan);
+  color: var(--text-white);
+}
+
+.mute-toggle--off {
+  color: var(--text-dim);
+  border-color: rgba(120, 130, 150, 0.4);
+}
+
+.mute-toggle--off:hover {
+  border-color: var(--text-dim);
+  box-shadow: none;
+  color: var(--text-primary);
+}
+
+@media (max-width: 768px) {
+  .mute-toggle {
+    top: 12px;
+    left: 12px;
+  }
+}
+
+.shared-error-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 80;
+  padding: 10px 16px;
+  background: rgba(20, 4, 14, 0.92);
+  border: 2px solid var(--fighter-a);
+  color: var(--fighter-a);
+  font-family: var(--font-pixel);
+  font-size: 9px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  box-shadow: var(--glow-a);
+}
+
 .app-auth-nav__link {
   padding: 10px 12px;
   border: 1px solid rgba(0, 240, 255, 0.24);

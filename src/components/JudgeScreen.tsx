@@ -1,5 +1,7 @@
+import { useEffect } from "react";
 import type { JudgeVerdict } from "../types/battle";
 import type { Translations } from "../data/i18n";
+import { playSound } from "../utils/audio";
 import PixelButton from "./PixelButton";
 
 interface JudgeScreenProps {
@@ -10,10 +12,15 @@ interface JudgeScreenProps {
 }
 
 export default function JudgeScreen({ verdict, winnerName, onContinue, t }: JudgeScreenProps) {
+  useEffect(() => {
+    playSound("gavel");
+  }, []);
+
   return (
     <div className="judge-screen">
       <div className="screen-bg" />
       <div className="judge-overlay" />
+      <div className="judge-flash" aria-hidden="true" />
 
       <div className="judge-content">
         <div className="judge-portrait-wrap">
