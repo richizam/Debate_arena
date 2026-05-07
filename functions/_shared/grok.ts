@@ -143,9 +143,25 @@ What is publicly happening right now that would make this debate feel current?`;
   return { system, user };
 }
 
+export interface GrokDebug {
+  httpStatus?: number;
+  bodyPreview?: string;
+  errorKind?: "no_key" | "http_error" | "empty_content" | "parse_failed" | "timeout" | "threw";
+  durationMs?: number;
+}
+
+let lastGrokDebug: GrokDebug | null = null;
+
+export function consumeLastGrokDebug(): GrokDebug | null {
+  const out = lastGrokDebug;
+  lastGrokDebug = null;
+  return out;
+}
+
 async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<ContextPack | null> {
   const apiKey = env.XAI_API_KEY;
   if (!apiKey) {
+    lastGrokDebug = { errorKind: "no_key" };
     return null;
   }
 
@@ -154,6 +170,7 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const startedAt = Date.now();
 
   try {
     const response = await fetch(`${baseUrl}/responses`, {
@@ -195,8 +212,16 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
       }),
     });
 
+    const durationMs = Date.now() - startedAt;
     if (!response.ok) {
-      console.warn("Grok request failed:", response.status, await response.text().catch(() => ""));
+      const body = await response.text().catch(() => "");
+      console.warn("Grok request failed:", response.status, body);
+      lastGrokDebug = {
+        errorKind: "http_error",
+        httpStatus: response.status,
+        bodyPreview: body.slice(0, 300),
+        durationMs,
+      };
       return null;
     }
 
@@ -205,6 +230,11 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
       data.output_text ?? data.output?.[0]?.content?.[0]?.text ?? ""
     ).trim();
     if (!content) {
+      lastGrokDebug = {
+        errorKind: "empty_content",
+        httpStatus: response.status,
+        durationMs,
+      };
       return null;
     }
 
@@ -212,12 +242,28 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
       data.output?.[0]?.content?.[0]?.annotations?.length ?? 0;
     const sourcesCount =
       data.usage?.num_sources_used ?? annotationCount;
-    return parsePack(content, sourcesCount);
+    const pack = parsePack(content, sourcesCount);
+    if (!pack) {
+      lastGrokDebug = {
+        errorKind: "parse_failed",
+        httpStatus: response.status,
+        bodyPreview: content.slice(0, 300),
+        durationMs,
+      };
+    }
+    return pack;
   } catch (error) {
+    const durationMs = Date.now() - startedAt;
     if (error instanceof DOMException && error.name === "AbortError") {
       console.warn("Grok request timed out after", FETCH_TIMEOUT_MS, "ms");
+      lastGrokDebug = { errorKind: "timeout", durationMs };
     } else {
       console.warn("Grok request threw:", error);
+      lastGrokDebug = {
+        errorKind: "threw",
+        bodyPreview: String(error).slice(0, 300),
+        durationMs,
+      };
     }
     return null;
   } finally {

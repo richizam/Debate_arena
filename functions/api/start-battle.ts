@@ -3,7 +3,7 @@ import { consumeBattleCredit, getBillingStatus } from "../_shared/billing";
 import { buildEnrichedSystemPrompt } from "../_shared/contextPrompt";
 import { optionsResponse } from "../_shared/cors";
 import type { Env } from "../_shared/env";
-import { getContextPack, type ContextPack } from "../_shared/grok";
+import { consumeLastGrokDebug, getContextPack, type ContextPack, type GrokDebug } from "../_shared/grok";
 import { errorResponse, jsonResponse, readJson } from "../_shared/http";
 import { buildTonePrompt, parseTone, type Tone } from "../_shared/tonePrompt";
 
@@ -71,6 +71,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   let contextPack: ContextPack | null = null;
   let liveContextReason: string;
+  let grokDebug: GrokDebug | null = null;
   if (liveContext !== true) {
     liveContextReason = "not_requested";
   } else if (!context.env.XAI_API_KEY) {
@@ -84,10 +85,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         fighterB: fighterBName,
       });
       liveContextReason = contextPack ? "applied" : "grok_returned_null";
+      grokDebug = consumeLastGrokDebug();
     } catch (contextError) {
       console.warn("Live context fetch failed, falling back to vanilla flow:", contextError);
       contextPack = null;
       liveContextReason = "grok_threw";
+      grokDebug = consumeLastGrokDebug();
     }
   }
 
@@ -201,6 +204,7 @@ Respond with this EXACT JSON (no other text):
           keyHasWhitespace:
             typeof xaiKey === "string" && xaiKey !== xaiKey.trim(),
           kvBound: Boolean(context.env.LIVE_CONTEXT_KV),
+          ...(grokDebug ? { grok: grokDebug } : {}),
         }
       : undefined;
 
