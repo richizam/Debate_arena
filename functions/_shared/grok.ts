@@ -187,10 +187,7 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
           { role: "user", content: user },
         ],
         temperature: 0.2,
-        tools: [
-          { type: "web_search" },
-          { type: "x_search" },
-        ],
+        tools: [{ type: "web_search" }],
         text: {
           format: {
             type: "json_schema",
