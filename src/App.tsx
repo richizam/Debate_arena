@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
-import type { GamePhase, Battle, JudgeVerdict, Language } from "./types/battle";
+import type { GamePhase, Battle, JudgeVerdict, Language, Tone } from "./types/battle";
 import type { BillingStatusResponse, PlanCode } from "./types/billing";
 import { normalizeBattle } from "./utils/battleNormalizer";
 import { createFallbackBattle } from "./data/emergencyFallbackBattle";
@@ -325,7 +325,8 @@ export default function App() {
       player2: string,
       topic: string,
       lang: Language,
-      liveContext: boolean
+      liveContext: boolean,
+      tone: Tone
     ) => {
       abortRef.current.abort();
       abortRef.current = new AbortController();
@@ -367,6 +368,7 @@ export default function App() {
             topic,
             language: lang,
             liveContext,
+            tone,
           }),
           signal: abortRef.current.signal,
         });

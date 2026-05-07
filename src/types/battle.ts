@@ -26,3 +26,5 @@ export interface Battle {
 export type GamePhase = "intro" | "loading" | "vs" | "debate" | "judge" | "result" | "limit";
 
 export type Language = "en" | "es" | "de" | "fr" | "ru";
+
+export type Tone = "civil" | "heated" | "savage";

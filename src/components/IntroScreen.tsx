@@ -1,11 +1,34 @@
 import { useEffect, useRef, useState } from "react";
-import type { Language } from "../types/battle";
+import type { Language, Tone } from "../types/battle";
 import { LANGUAGES, translations } from "../data/i18n";
 import { track } from "../utils/analytics";
 import type { SuggestedBattle } from "../utils/suggestions";
 import Flag from "./Flag";
 import PixelButton from "./PixelButton";
 import SuggestionRow from "./SuggestionRow";
+import TonePicker from "./TonePicker";
+
+const TONE_STORAGE_KEY = "debate_arena_tone";
+
+function loadStoredTone(): Tone {
+  try {
+    const stored = localStorage.getItem(TONE_STORAGE_KEY);
+    if (stored === "civil" || stored === "heated" || stored === "savage") {
+      return stored;
+    }
+  } catch {
+    // localStorage may be unavailable; silently fall back
+  }
+  return "heated";
+}
+
+function persistTone(tone: Tone) {
+  try {
+    localStorage.setItem(TONE_STORAGE_KEY, tone);
+  } catch {
+    // ignore
+  }
+}
 
 interface IntroScreenProps {
   onStart: (
@@ -13,7 +36,8 @@ interface IntroScreenProps {
     player2: string,
     topic: string,
     language: Language,
-    liveContext: boolean
+    liveContext: boolean,
+    tone: Tone
   ) => void;
   isLoading: boolean;
 }
@@ -23,8 +47,14 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
   const [player1, setPlayer1] = useState("");
   const [player2, setPlayer2] = useState("");
   const [topic, setTopic] = useState("");
+  const [tone, setTone] = useState<Tone>(loadStoredTone);
   const [activeSuggestion, setActiveSuggestion] = useState<SuggestedBattle | null>(null);
   const shownLangsRef = useRef<Set<Language>>(new Set());
+
+  function handleToneChange(next: Tone) {
+    setTone(next);
+    persistTone(next);
+  }
 
   const t = translations[language];
   const canStart = player1.trim().length > 0 && player2.trim().length > 0 && !isLoading;
@@ -75,13 +105,15 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
       lang: language,
       isLive: liveContext,
       suggestionId: matched?.id ?? null,
+      tone,
     });
     onStart(
       player1.trim(),
       player2.trim(),
       topic.trim() || t.defaultTopic,
       language,
-      liveContext
+      liveContext,
+      tone
     );
   }
 
@@ -168,6 +200,21 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
             disabled={isLoading}
           />
         </div>
+
+        <TonePicker
+          tone={tone}
+          onChange={handleToneChange}
+          disabled={isLoading}
+          labels={{
+            heading: t.toneHeading,
+            civil: t.toneCivil,
+            civilDesc: t.toneCivilDesc,
+            heated: t.toneHeated,
+            heatedDesc: t.toneHeatedDesc,
+            savage: t.toneSavage,
+            savageDesc: t.toneSavageDesc,
+          }}
+        />
 
         {isLoading ? (
           <p className="intro-loading-hint">{t.generating}</p>

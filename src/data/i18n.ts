@@ -85,6 +85,13 @@ export interface Translations {
   startYourOwnDebate: string;
   loadingSharedBattle: string;
   sharedBattleNotFound: string;
+  toneHeading: string;
+  toneCivil: string;
+  toneCivilDesc: string;
+  toneHeated: string;
+  toneHeatedDesc: string;
+  toneSavage: string;
+  toneSavageDesc: string;
 }
 
 const baseEnglish: Translations = {
@@ -156,6 +163,13 @@ const baseEnglish: Translations = {
   startYourOwnDebate: "START YOUR OWN DEBATE",
   loadingSharedBattle: "Loading the shared battle...",
   sharedBattleNotFound: "This shared battle is no longer available.",
+  toneHeading: "Tone",
+  toneCivil: "CIVIL",
+  toneCivilDesc: "Formal, respectful disagreement",
+  toneHeated: "HEATED",
+  toneHeatedDesc: "Sports-radio energy. Sharp insults, no profanity",
+  toneSavage: "SAVAGE",
+  toneSavageDesc: "Roast-battle mode. Mild profanity allowed",
 };
 
 export const translations: Record<Language, Translations> = {
@@ -207,6 +221,13 @@ export const translations: Record<Language, Translations> = {
     loadingBilling: "Cargando...",
     suggestionsHeading: "Elige una batalla para empezar ya",
     liveTag: "EN VIVO",
+    toneHeading: "Tono",
+    toneCivil: "CIVIL",
+    toneCivilDesc: "Desacuerdo formal y respetuoso",
+    toneHeated: "INTENSO",
+    toneHeatedDesc: "Energia de radio deportiva. Insultos filosos, sin groserias",
+    toneSavage: "SALVAJE",
+    toneSavageDesc: "Modo roast. Groserias suaves permitidas",
     limitCountdownLabel: "Tu proximo debate gratis en",
     limitShareCta: "Trae a un amigo, vuelve a pelear",
     limitShareLabel: "COMPARTIR EN X",

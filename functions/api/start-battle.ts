@@ -5,6 +5,7 @@ import { optionsResponse } from "../_shared/cors";
 import type { Env } from "../_shared/env";
 import { getContextPack, type ContextPack } from "../_shared/grok";
 import { errorResponse, jsonResponse, readJson } from "../_shared/http";
+import { buildTonePrompt, parseTone, type Tone } from "../_shared/tonePrompt";
 
 interface RequestBody {
   fighterAName: string;
@@ -12,6 +13,7 @@ interface RequestBody {
   topic: string;
   language: string;
   liveContext?: boolean;
+  tone?: unknown;
 }
 
 interface DeepSeekResponse {
@@ -43,6 +45,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const { fighterAName, fighterBName, topic, language, liveContext } = body;
+  const tone: Tone = parseTone(body.tone);
   const langName = LANGUAGE_NAMES[language] ?? "English";
   const apiKey = context.env.DEEPSEEK_API_KEY;
 
@@ -97,9 +100,10 @@ LANGUAGE: Write everything in ${langName} only.
 
 Respond with valid JSON only. No markdown, no code fences.`;
 
+  const baseWithTone = `${baseSystemPrompt}\n\n${buildTonePrompt(tone)}`;
   const systemPrompt = contextPack
-    ? buildEnrichedSystemPrompt(baseSystemPrompt, contextPack)
-    : baseSystemPrompt;
+    ? buildEnrichedSystemPrompt(baseWithTone, contextPack)
+    : baseWithTone;
 
   const userPrompt = `Write a reactive, escalating argument between these two people:
 
@@ -193,6 +197,7 @@ Respond with this EXACT JSON (no other text):
     const battleResponse = {
       ...(battle as Record<string, unknown>),
       _liveContext: liveContextMeta,
+      _tone: tone,
       ...(auth ? { _billing: remainingBilling } : {}),
     };
 
