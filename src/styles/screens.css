@@ -972,6 +972,13 @@
   color: var(--text-white);
 }
 
+.billing-plan__pro-line {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--magenta);
+  letter-spacing: 0.5px;
+}
+
 .billing-plan__action {
   font-size: 8px;
   color: var(--text-dim);

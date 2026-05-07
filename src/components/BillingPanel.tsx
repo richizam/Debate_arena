@@ -174,6 +174,7 @@ export default function BillingPanel({
               >
                 <span className="billing-plan__name">{plan.label}</span>
                 <span className="billing-plan__price">{plan.price}</span>
+                <span className="billing-plan__pro-line">{plan.proLine}</span>
                 <span className="billing-plan__action">
                   {checkoutLoadingPlan === plan.code ? t.loadingBilling : t.subscribeNow}
                 </span>
