@@ -6,11 +6,14 @@ import type { PlanCode } from "./plans";
 interface CreditWallet {
   user_id: string;
   credits_balance: number;
+  premium_credits_balance: number;
   expires_at: string | null;
   current_plan_code: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type CreditPool = "regular" | "premium";
 
 interface SubscriptionRecord {
   user_id: string;
@@ -33,6 +36,7 @@ interface LedgerInsertInput {
   userId: string;
   delta: number;
   reason: string;
+  pool: CreditPool;
   resultingBalance: number;
   resultingExpiresAt: string | null;
   dodoPaymentId?: string | null;
@@ -41,6 +45,7 @@ interface LedgerInsertInput {
 
 export interface BillingStatus {
   creditsRemaining: number;
+  premiumCreditsRemaining: number;
   expiresAt: string | null;
   currentPlanCode: string | null;
   subscriptionStatus: string | null;
@@ -52,6 +57,7 @@ export interface GrantCreditsInput {
   email: string;
   planCode: PlanCode;
   credits: number;
+  premiumCredits: number;
   paymentId: string | null;
   subscriptionId: string | null;
   customerId: string | null;
@@ -115,6 +121,7 @@ async function insertLedgerEntry(env: Env, input: LedgerInsertInput): Promise<vo
     user_id: input.userId,
     delta: input.delta,
     reason: input.reason,
+    pool: input.pool,
     dodo_payment_id: input.dodoPaymentId ?? null,
     dodo_subscription_id: input.dodoSubscriptionId ?? null,
     resulting_balance: input.resultingBalance,
@@ -181,7 +188,7 @@ export async function expireWalletIfNeeded(
     return wallet;
   }
 
-  if (wallet.credits_balance === 0) {
+  if (wallet.credits_balance === 0 && wallet.premium_credits_balance === 0) {
     return wallet;
   }
 
@@ -189,6 +196,7 @@ export async function expireWalletIfNeeded(
     .from("credit_wallets")
     .update({
       credits_balance: 0,
+      premium_credits_balance: 0,
       updated_at: nowIso(),
     })
     .eq("user_id", userId)
@@ -199,13 +207,27 @@ export async function expireWalletIfNeeded(
     throw new Error(`Failed to expire credit wallet: ${error.message}`);
   }
 
-  await insertLedgerEntry(env, {
-    userId,
-    delta: -wallet.credits_balance,
-    reason: "expiry_reset",
-    resultingBalance: 0,
-    resultingExpiresAt: wallet.expires_at,
-  });
+  if (wallet.credits_balance > 0) {
+    await insertLedgerEntry(env, {
+      userId,
+      delta: -wallet.credits_balance,
+      reason: "expiry_reset",
+      pool: "regular",
+      resultingBalance: 0,
+      resultingExpiresAt: wallet.expires_at,
+    });
+  }
+
+  if (wallet.premium_credits_balance > 0) {
+    await insertLedgerEntry(env, {
+      userId,
+      delta: -wallet.premium_credits_balance,
+      reason: "expiry_reset",
+      pool: "premium",
+      resultingBalance: 0,
+      resultingExpiresAt: wallet.expires_at,
+    });
+  }
 
   return data;
 }
@@ -225,6 +247,7 @@ export async function getBillingStatus(
 
   return {
     creditsRemaining: wallet.credits_balance,
+    premiumCreditsRemaining: wallet.premium_credits_balance,
     expiresAt: wallet.expires_at,
     currentPlanCode: wallet.current_plan_code,
     subscriptionStatus: subscription?.status ?? null,
@@ -234,13 +257,14 @@ export async function getBillingStatus(
 
 export async function consumeBattleCredit(
   env: Env,
-  user: Pick<User, "id" | "email">
+  user: Pick<User, "id" | "email">,
+  pool: CreditPool = "regular"
 ): Promise<BillingStatus | null> {
   await ensureUserRecords(env, user);
   const admin = getSupabaseAdmin(env);
   const wallet = await expireWalletIfNeeded(env, user.id);
 
-  if (!wallet.expires_at || wallet.credits_balance <= 0) {
+  if (!wallet.expires_at) {
     return null;
   }
 
@@ -249,15 +273,24 @@ export async function consumeBattleCredit(
     return null;
   }
 
-  const nextBalance = wallet.credits_balance - 1;
+  const balanceColumn = pool === "premium" ? "premium_credits_balance" : "credits_balance";
+  const currentBalance = pool === "premium" ? wallet.premium_credits_balance : wallet.credits_balance;
+
+  if (currentBalance <= 0) {
+    return null;
+  }
+
+  const nextBalance = currentBalance - 1;
+  const updatePayload: Record<string, unknown> = {
+    updated_at: currentTime,
+    [balanceColumn]: nextBalance,
+  };
+
   const { data, error } = await admin
     .from("credit_wallets")
-    .update({
-      credits_balance: nextBalance,
-      updated_at: currentTime,
-    })
+    .update(updatePayload)
     .eq("user_id", user.id)
-    .eq("credits_balance", wallet.credits_balance)
+    .eq(balanceColumn, currentBalance)
     .gt("expires_at", currentTime)
     .select("*")
     .maybeSingle();
@@ -273,7 +306,8 @@ export async function consumeBattleCredit(
   await insertLedgerEntry(env, {
     userId: user.id,
     delta: -1,
-    reason: "battle_consumed",
+    reason: pool === "premium" ? "battle_consumed_premium" : "battle_consumed",
+    pool,
     resultingBalance: nextBalance,
     resultingExpiresAt: data.expires_at,
   });
@@ -286,6 +320,7 @@ export async function consumeBattleCredit(
 
   return {
     creditsRemaining: data.credits_balance,
+    premiumCreditsRemaining: data.premium_credits_balance,
     expiresAt: data.expires_at,
     currentPlanCode: data.current_plan_code,
     subscriptionStatus: subscription?.status ?? null,
@@ -322,6 +357,7 @@ export async function grantCreditsFromPaymentWithAdmin(
     p_email: input.email,
     p_plan_code: input.planCode,
     p_credits: input.credits,
+    p_premium_credits: input.premiumCredits,
     p_payment_id: input.paymentId,
     p_subscription_id: input.subscriptionId,
     p_customer_id: input.customerId,

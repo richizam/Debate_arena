@@ -56,6 +56,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         email: paymentContext.email,
         planCode: paymentContext.planCode,
         credits: plan.credits,
+        premiumCredits: plan.premiumCredits,
         paymentId: paymentContext.paymentId,
         subscriptionId: paymentContext.subscriptionId,
         customerId: paymentContext.customerId,

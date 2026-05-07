@@ -326,7 +326,8 @@ export default function App() {
       topic: string,
       lang: Language,
       liveContext: boolean,
-      tone: Tone
+      tone: Tone,
+      proLive: boolean
     ) => {
       abortRef.current.abort();
       abortRef.current = new AbortController();
@@ -369,6 +370,7 @@ export default function App() {
             language: lang,
             liveContext,
             tone,
+            proLive,
           }),
           signal: abortRef.current.signal,
         });
@@ -687,7 +689,13 @@ export default function App() {
       ) : null}
 
       <div className={cn("screen", phase === "intro" && "active")}>
-        <IntroScreen onStart={handleStart} isLoading={isLoading} />
+        <IntroScreen
+          onStart={handleStart}
+          isLoading={isLoading}
+          proLiveUnlocked={Boolean(accessToken && billingStatus?.currentPlanCode)}
+          premiumCreditsRemaining={billingStatus?.premiumCreditsRemaining ?? 0}
+          aiDisclaimer={t.aiDisclaimer}
+        />
       </div>
 
       <div className={cn("screen", phase === "limit" && "active")}>

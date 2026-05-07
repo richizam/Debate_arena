@@ -92,6 +92,14 @@ export interface Translations {
   toneHeatedDesc: string;
   toneSavage: string;
   toneSavageDesc: string;
+  proLiveLabel: string;
+  proLiveBadge: string;
+  proLiveDesc: string;
+  proLiveLockedDesc: string;
+  proLiveOutOfCredits: string;
+  proLiveLoading: string;
+  premiumCreditsRemaining: string;
+  aiDisclaimer: string;
 }
 
 const baseEnglish: Translations = {
@@ -170,6 +178,14 @@ const baseEnglish: Translations = {
   toneHeatedDesc: "Sports-radio energy. Sharp insults, no profanity",
   toneSavage: "SAVAGE",
   toneSavageDesc: "Roast-battle mode. Mild profanity allowed",
+  proLiveLabel: "PRO LIVE",
+  proLiveBadge: "PRO",
+  proLiveDesc: "Searches X and the live web. Costs 1 premium credit. Takes 20–30 seconds.",
+  proLiveLockedDesc: "Sign in with a paid plan to unlock Pro Live (X + live web search).",
+  proLiveOutOfCredits: "No Pro Live credits remaining this month.",
+  proLiveLoading: "Researching X and the live web in real time… this takes 20–30 seconds for the deepest context.",
+  premiumCreditsRemaining: "Pro Credits",
+  aiDisclaimer: "Debates are AI-generated and may contain errors, fabricated quotes, or fictional details. For entertainment only.",
 };
 
 export const translations: Record<Language, Translations> = {
@@ -228,6 +244,14 @@ export const translations: Record<Language, Translations> = {
     toneHeatedDesc: "Energia de radio deportiva. Insultos filosos, sin groserias",
     toneSavage: "SALVAJE",
     toneSavageDesc: "Modo roast. Groserias suaves permitidas",
+    proLiveLabel: "PRO LIVE",
+    proLiveBadge: "PRO",
+    proLiveDesc: "Busca en X y la web en tiempo real. Cuesta 1 credito Pro. Tarda 20-30 segundos.",
+    proLiveLockedDesc: "Inicia sesion con plan de pago para desbloquear Pro Live (X + web en vivo).",
+    proLiveOutOfCredits: "No te quedan creditos Pro Live este mes.",
+    proLiveLoading: "Investigando X y la web en tiempo real... toma 20-30 segundos para el contexto mas profundo.",
+    premiumCreditsRemaining: "Creditos Pro",
+    aiDisclaimer: "Los debates son generados por IA y pueden contener errores, citas inventadas o detalles ficticios. Solo para entretenimiento.",
     limitCountdownLabel: "Tu proximo debate gratis en",
     limitShareCta: "Trae a un amigo, vuelve a pelear",
     limitShareLabel: "COMPARTIR EN X",

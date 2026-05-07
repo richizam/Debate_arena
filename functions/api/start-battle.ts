@@ -13,6 +13,7 @@ interface RequestBody {
   topic: string;
   language: string;
   liveContext?: boolean;
+  proLive?: boolean;
   tone?: unknown;
 }
 
@@ -45,6 +46,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const { fighterAName, fighterBName, topic, language, liveContext } = body;
+  const proLive = body.proLive === true;
   const tone: Tone = parseTone(body.tone);
   const langName = LANGUAGE_NAMES[language] ?? "English";
   const apiKey = context.env.DEEPSEEK_API_KEY;
@@ -54,6 +56,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   const auth = await getOptionalAuthenticatedUser(context.request, context.env);
+
+  // Pro Live (web + X search) is gated to authenticated paid users with premium credits.
+  if (proLive && !auth) {
+    return errorResponse(401, "pro_live_requires_auth", "Pro Live requires a paid account.");
+  }
+
   let billingStatus = null;
 
   if (auth) {
@@ -64,7 +72,19 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return errorResponse(500, "credit_check_failed", "Unable to verify paid debate credits.");
     }
 
-    if (!billingStatus || billingStatus.creditsRemaining <= 0 || !billingStatus.expiresAt) {
+    if (!billingStatus || !billingStatus.expiresAt) {
+      return errorResponse(402, "credits_exhausted", "No active paid debate credits remain.");
+    }
+
+    if (proLive) {
+      if (billingStatus.premiumCreditsRemaining <= 0) {
+        return errorResponse(
+          402,
+          "premium_credits_exhausted",
+          "No Pro Live credits remain on this plan."
+        );
+      }
+    } else if (billingStatus.creditsRemaining <= 0) {
       return errorResponse(402, "credits_exhausted", "No active paid debate credits remain.");
     }
   }
@@ -72,7 +92,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   let contextPack: ContextPack | null = null;
   let liveContextReason: string;
   let grokDebug: GrokDebug | null = null;
-  if (liveContext !== true) {
+  if (liveContext !== true && !proLive) {
     liveContextReason = "not_requested";
   } else if (!context.env.XAI_API_KEY) {
     liveContextReason = "xai_key_missing";
@@ -83,6 +103,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         topic,
         fighterA: fighterAName,
         fighterB: fighterBName,
+        proLive,
       });
       liveContextReason = contextPack ? "applied" : "grok_returned_null";
       grokDebug = consumeLastGrokDebug();
@@ -190,14 +211,18 @@ Respond with this EXACT JSON (no other text):
     let remainingBilling = billingStatus;
 
     if (auth) {
-      remainingBilling = await consumeBattleCredit(context.env, auth.user);
+      remainingBilling = await consumeBattleCredit(
+        context.env,
+        auth.user,
+        proLive ? "premium" : "regular"
+      );
       if (!remainingBilling) {
         return errorResponse(409, "credit_conflict", "Debate credits changed before the battle could be finalized.");
       }
     }
 
     const xaiKey = context.env.XAI_API_KEY;
-    const debugInfo = liveContext === true
+    const debugInfo = liveContext === true || proLive
       ? {
           keyPresent: typeof xaiKey === "string" && xaiKey.length > 0,
           keyLength: typeof xaiKey === "string" ? xaiKey.length : 0,
@@ -213,10 +238,12 @@ Respond with this EXACT JSON (no other text):
           applied: true,
           freshness: contextPack.freshness,
           sources: contextPack.sourcesCount,
+          proLive,
         }
       : {
           applied: false,
           reason: liveContextReason,
+          proLive,
           ...(debugInfo ? { debug: debugInfo } : {}),
         };
 
@@ -224,6 +251,7 @@ Respond with this EXACT JSON (no other text):
       ...(battle as Record<string, unknown>),
       _liveContext: liveContextMeta,
       _tone: tone,
+      _proLive: proLive,
       ...(auth ? { _billing: remainingBilling } : {}),
     };
 

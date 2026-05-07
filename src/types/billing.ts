@@ -2,6 +2,7 @@ export type PlanCode = "pack_25_monthly" | "pack_50_monthly" | "pack_100_monthly
 
 export interface BillingStatus {
   creditsRemaining: number;
+  premiumCreditsRemaining: number;
   expiresAt: string | null;
   currentPlanCode: string | null;
   subscriptionStatus: string | null;

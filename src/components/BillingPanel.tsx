@@ -146,6 +146,12 @@ export default function BillingPanel({
               </strong>
             </div>
             <div className="billing-stat">
+              <span className="billing-stat__label">{t.premiumCreditsRemaining}</span>
+              <strong className="billing-stat__value billing-stat__value--premium">
+                {isBillingLoading ? "..." : billingStatus?.premiumCreditsRemaining ?? 0}
+              </strong>
+            </div>
+            <div className="billing-stat">
               <span className="billing-stat__label">{t.creditsExpire}</span>
               <strong className="billing-stat__value">
                 {isBillingLoading ? "..." : formatExpiryDate(billingStatus?.expiresAt ?? null)}

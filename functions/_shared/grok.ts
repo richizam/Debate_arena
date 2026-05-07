@@ -15,6 +15,7 @@ interface GrokRequestInput {
   topic: string;
   fighterA: string;
   fighterB: string;
+  proLive?: boolean;
 }
 
 interface GrokResponseContent {
@@ -56,9 +57,11 @@ function extractText(data: GrokResponse): { text: string; annotationCount: numbe
 }
 
 const CACHE_KEY_PREFIX = "lc:v1:";
+const PROLIVE_CACHE_KEY_PREFIX = "lc:pro:v1:";
 const SUCCESS_TTL_SECONDS = 6 * 60 * 60;
 const NEGATIVE_TTL_SECONDS = 24 * 60 * 60;
 const FETCH_TIMEOUT_MS = 22000;
+const PROLIVE_FETCH_TIMEOUT_MS = 28000;
 const MAX_BUCKET_ITEMS = 6;
 const MAX_ITEM_LENGTH = 280;
 
@@ -89,7 +92,8 @@ export async function buildCacheKey(input: GrokRequestInput): Promise<string> {
   const fighters = [normalize(input.fighterA), normalize(input.fighterB)].sort().join("|");
   const composite = `${input.lang}|${normalize(input.topic)}|${fighters}`;
   const hash = await sha1Hex(composite);
-  return `${CACHE_KEY_PREFIX}${hash}`;
+  const prefix = input.proLive ? PROLIVE_CACHE_KEY_PREFIX : CACHE_KEY_PREFIX;
+  return `${prefix}${hash}`;
 }
 
 function clampList(value: unknown): string[] {
@@ -190,9 +194,11 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
 
   const baseUrl = env.XAI_API_BASE_URL || "https://api.x.ai/v1";
   const { system, user } = buildPrompt(input);
+  const isProLive = input.proLive === true;
+  const timeoutMs = isProLive ? PROLIVE_FETCH_TIMEOUT_MS : FETCH_TIMEOUT_MS;
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   const startedAt = Date.now();
 
   try {
@@ -210,7 +216,9 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
           { role: "user", content: user },
         ],
         temperature: 0.2,
-        tools: [{ type: "web_search" }],
+        tools: isProLive
+          ? [{ type: "web_search" }, { type: "x_search" }]
+          : [{ type: "web_search" }],
         text: {
           format: {
             type: "json_schema",
@@ -274,7 +282,7 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
   } catch (error) {
     const durationMs = Date.now() - startedAt;
     if (error instanceof DOMException && error.name === "AbortError") {
-      console.warn("Grok request timed out after", FETCH_TIMEOUT_MS, "ms");
+      console.warn("Grok request timed out after", timeoutMs, "ms");
       lastGrokDebug = { errorKind: "timeout", durationMs };
     } else {
       console.warn("Grok request threw:", error);

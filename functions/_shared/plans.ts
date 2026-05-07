@@ -7,6 +7,7 @@ interface PlanConfig {
   code: PlanCode;
   displayName: string;
   credits: number;
+  premiumCredits: number;
   monthlyPriceUsd: string;
   envKey: keyof Env;
 }
@@ -16,6 +17,7 @@ export const PLAN_CONFIGS: Record<PlanCode, PlanConfig> = {
     code: "pack_25_monthly",
     displayName: "25 debates / month",
     credits: 25,
+    premiumCredits: 5,
     monthlyPriceUsd: "3.99",
     envKey: "DODO_PRICE_ID_PACK_25_MONTHLY",
   },
@@ -23,6 +25,7 @@ export const PLAN_CONFIGS: Record<PlanCode, PlanConfig> = {
     code: "pack_50_monthly",
     displayName: "50 debates / month",
     credits: 50,
+    premiumCredits: 12,
     monthlyPriceUsd: "6.99",
     envKey: "DODO_PRICE_ID_PACK_50_MONTHLY",
   },
@@ -30,6 +33,7 @@ export const PLAN_CONFIGS: Record<PlanCode, PlanConfig> = {
     code: "pack_100_monthly",
     displayName: "100 debates / month",
     credits: 100,
+    premiumCredits: 25,
     monthlyPriceUsd: "9.99",
     envKey: "DODO_PRICE_ID_PACK_100_MONTHLY",
   },

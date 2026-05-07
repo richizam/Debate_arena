@@ -5,6 +5,7 @@ import { track } from "../utils/analytics";
 import type { SuggestedBattle } from "../utils/suggestions";
 import Flag from "./Flag";
 import PixelButton from "./PixelButton";
+import ProLiveToggle from "./ProLiveToggle";
 import SuggestionRow from "./SuggestionRow";
 import TonePicker from "./TonePicker";
 
@@ -37,17 +38,28 @@ interface IntroScreenProps {
     topic: string,
     language: Language,
     liveContext: boolean,
-    tone: Tone
+    tone: Tone,
+    proLive: boolean
   ) => void;
   isLoading: boolean;
+  proLiveUnlocked: boolean;
+  premiumCreditsRemaining: number;
+  aiDisclaimer: string;
 }
 
-export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
+export default function IntroScreen({
+  onStart,
+  isLoading,
+  proLiveUnlocked,
+  premiumCreditsRemaining,
+  aiDisclaimer,
+}: IntroScreenProps) {
   const [language, setLanguage] = useState<Language>("en");
   const [player1, setPlayer1] = useState("");
   const [player2, setPlayer2] = useState("");
   const [topic, setTopic] = useState("");
   const [tone, setTone] = useState<Tone>(loadStoredTone);
+  const [proLive, setProLive] = useState(false);
   const [activeSuggestion, setActiveSuggestion] = useState<SuggestedBattle | null>(null);
   const shownLangsRef = useRef<Set<Language>>(new Set());
 
@@ -55,6 +67,12 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
     setTone(next);
     persistTone(next);
   }
+
+  useEffect(() => {
+    if (proLive && (!proLiveUnlocked || premiumCreditsRemaining <= 0)) {
+      setProLive(false);
+    }
+  }, [proLive, proLiveUnlocked, premiumCreditsRemaining]);
 
   const t = translations[language];
   const canStart = player1.trim().length > 0 && player2.trim().length > 0 && !isLoading;
@@ -106,6 +124,7 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
       isLive: liveContext,
       suggestionId: matched?.id ?? null,
       tone,
+      proLive,
     });
     onStart(
       player1.trim(),
@@ -113,7 +132,8 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
       topic.trim() || t.defaultTopic,
       language,
       liveContext,
-      tone
+      tone,
+      proLive
     );
   }
 
@@ -216,8 +236,25 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
           }}
         />
 
+        <ProLiveToggle
+          enabled={proLive}
+          onToggle={setProLive}
+          disabled={isLoading}
+          unlocked={proLiveUnlocked}
+          premiumCreditsRemaining={premiumCreditsRemaining}
+          labels={{
+            label: t.proLiveLabel,
+            badge: t.proLiveBadge,
+            desc: t.proLiveDesc,
+            lockedDesc: t.proLiveLockedDesc,
+            outOfCredits: t.proLiveOutOfCredits,
+          }}
+        />
+
         {isLoading ? (
-          <p className="intro-loading-hint">{t.generating}</p>
+          <p className="intro-loading-hint">
+            {proLive ? t.proLiveLoading : t.generating}
+          </p>
         ) : (
           <PixelButton
             label={t.startBattle}
@@ -226,6 +263,8 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
             disabled={!canStart}
           />
         )}
+
+        <p className="intro-disclaimer">{aiDisclaimer}</p>
       </div>
     </div>
   );
