@@ -1,11 +1,11 @@
 import type { Language } from "../types/battle";
 
 export const LANGUAGES: { code: Language; flag: string; label: string }[] = [
-  { code: "en", flag: "EN", label: "EN" },
-  { code: "es", flag: "ES", label: "ES" },
-  { code: "de", flag: "DE", label: "DE" },
-  { code: "fr", flag: "FR", label: "FR" },
-  { code: "ru", flag: "RU", label: "RU" },
+  { code: "en", flag: "🇬🇧", label: "EN" },
+  { code: "es", flag: "🇪🇸", label: "ES" },
+  { code: "de", flag: "🇩🇪", label: "DE" },
+  { code: "fr", flag: "🇫🇷", label: "FR" },
+  { code: "ru", flag: "🇷🇺", label: "RU" },
 ];
 
 export const LANGUAGE_NAMES: Record<Language, string> = {

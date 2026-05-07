@@ -92,23 +92,24 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
     <div className="intro-screen">
       <div className="screen-bg" />
 
+      <div className="lang-selector lang-selector--corner">
+        {LANGUAGES.map((l) => (
+          <button
+            key={l.code}
+            className={`lang-btn${language === l.code ? " lang-btn--active" : ""}`}
+            onClick={() => handleLanguageChange(l.code)}
+            disabled={isLoading}
+            title={l.label}
+            aria-label={l.label}
+          >
+            <span className="lang-flag">{l.flag}</span>
+            <span className="lang-label">{l.label}</span>
+          </button>
+        ))}
+      </div>
+
       <div className="intro-content">
         <p className="intro-matchup">{t.epicDebateBattle}</p>
-
-        <div className="lang-selector">
-          {LANGUAGES.map((l) => (
-            <button
-              key={l.code}
-              className={`lang-btn${language === l.code ? " lang-btn--active" : ""}`}
-              onClick={() => handleLanguageChange(l.code)}
-              disabled={isLoading}
-              title={l.label}
-            >
-              <span className="lang-flag">{l.flag}</span>
-              <span className="lang-label">{l.label}</span>
-            </button>
-          ))}
-        </div>
 
         <SuggestionRow
           language={language}
