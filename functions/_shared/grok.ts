@@ -18,13 +18,17 @@ interface GrokRequestInput {
 }
 
 interface GrokResponse {
-  choices?: Array<{
-    message?: {
-      content?: string;
-    };
+  output?: Array<{
+    content?: Array<{
+      type?: string;
+      text?: string;
+      annotations?: Array<{ type?: string; url?: string }>;
+    }>;
   }>;
+  output_text?: string;
   usage?: {
     num_sources_used?: number;
+    num_server_side_tools_used?: number;
   };
 }
 
@@ -152,7 +156,7 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
   const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
   try {
-    const response = await fetch(`${baseUrl}/chat/completions`, {
+    const response = await fetch(`${baseUrl}/responses`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -160,18 +164,33 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
       },
       signal: controller.signal,
       body: JSON.stringify({
-        model: "grok-3-mini",
-        messages: [
+        model: "grok-4-fast-non-reasoning",
+        input: [
           { role: "system", content: system },
           { role: "user", content: user },
         ],
         temperature: 0.2,
-        response_format: { type: "json_object" },
-        search_parameters: {
-          mode: "on",
-          sources: [{ type: "x" }, { type: "web" }, { type: "news" }],
-          max_search_results: 8,
-          return_citations: false,
+        tools: [
+          { type: "web_search" },
+          { type: "x_search" },
+        ],
+        text: {
+          format: {
+            type: "json_schema",
+            name: "context_pack",
+            schema: {
+              type: "object",
+              properties: {
+                facts: { type: "array", items: { type: "string" }, maxItems: MAX_BUCKET_ITEMS },
+                discourse: { type: "array", items: { type: "string" }, maxItems: MAX_BUCKET_ITEMS },
+                uncertain: { type: "array", items: { type: "string" }, maxItems: MAX_BUCKET_ITEMS },
+                avoid: { type: "array", items: { type: "string" }, maxItems: MAX_BUCKET_ITEMS },
+              },
+              required: ["facts", "discourse", "uncertain", "avoid"],
+              additionalProperties: false,
+            },
+            strict: true,
+          },
         },
       }),
     });
@@ -182,12 +201,17 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
     }
 
     const data = (await response.json()) as GrokResponse;
-    const content = data.choices?.[0]?.message?.content?.trim();
+    const content = (
+      data.output_text ?? data.output?.[0]?.content?.[0]?.text ?? ""
+    ).trim();
     if (!content) {
       return null;
     }
 
-    const sourcesCount = data.usage?.num_sources_used ?? 0;
+    const annotationCount =
+      data.output?.[0]?.content?.[0]?.annotations?.length ?? 0;
+    const sourcesCount =
+      data.usage?.num_sources_used ?? annotationCount;
     return parsePack(content, sourcesCount);
   } catch (error) {
     if (error instanceof DOMException && error.name === "AbortError") {
