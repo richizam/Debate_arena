@@ -17,19 +17,42 @@ interface GrokRequestInput {
   fighterB: string;
 }
 
+interface GrokResponseContent {
+  type?: string;
+  text?: string;
+  annotations?: Array<{ type?: string; url?: string }>;
+}
+
+interface GrokResponseOutputItem {
+  type?: string;
+  content?: GrokResponseContent[];
+}
+
 interface GrokResponse {
-  output?: Array<{
-    content?: Array<{
-      type?: string;
-      text?: string;
-      annotations?: Array<{ type?: string; url?: string }>;
-    }>;
-  }>;
+  output?: GrokResponseOutputItem[];
   output_text?: string;
   usage?: {
     num_sources_used?: number;
     num_server_side_tools_used?: number;
   };
+}
+
+function extractText(data: GrokResponse): { text: string; annotationCount: number } {
+  if (data.output_text && data.output_text.trim().length > 0) {
+    return { text: data.output_text.trim(), annotationCount: 0 };
+  }
+  for (const item of data.output ?? []) {
+    if (!item.content) continue;
+    for (const c of item.content) {
+      if ((c.type === "output_text" || c.type === undefined) && c.text && c.text.trim().length > 0) {
+        return {
+          text: c.text.trim(),
+          annotationCount: c.annotations?.length ?? 0,
+        };
+      }
+    }
+  }
+  return { text: "", annotationCount: 0 };
 }
 
 const CACHE_KEY_PREFIX = "lc:v1:";
@@ -223,20 +246,19 @@ async function fetchFromGrok(env: Env, input: GrokRequestInput): Promise<Context
     }
 
     const data = (await response.json()) as GrokResponse;
-    const content = (
-      data.output_text ?? data.output?.[0]?.content?.[0]?.text ?? ""
-    ).trim();
+    const { text: content, annotationCount } = extractText(data);
     if (!content) {
       lastGrokDebug = {
         errorKind: "empty_content",
         httpStatus: response.status,
+        bodyPreview: `output_items=${data.output?.length ?? 0}; types=[${(data.output ?? [])
+          .map((it) => it.type ?? "?")
+          .join(",")}]`,
         durationMs,
       };
       return null;
     }
 
-    const annotationCount =
-      data.output?.[0]?.content?.[0]?.annotations?.length ?? 0;
     const sourcesCount =
       data.usage?.num_sources_used ?? annotationCount;
     const pack = parsePack(content, sourcesCount);
