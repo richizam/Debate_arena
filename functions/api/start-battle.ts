@@ -193,13 +193,28 @@ Respond with this EXACT JSON (no other text):
       }
     }
 
+    const xaiKey = context.env.XAI_API_KEY;
+    const debugInfo = liveContext === true
+      ? {
+          keyPresent: typeof xaiKey === "string" && xaiKey.length > 0,
+          keyLength: typeof xaiKey === "string" ? xaiKey.length : 0,
+          keyHasWhitespace:
+            typeof xaiKey === "string" && xaiKey !== xaiKey.trim(),
+          kvBound: Boolean(context.env.LIVE_CONTEXT_KV),
+        }
+      : undefined;
+
     const liveContextMeta = contextPack
       ? {
           applied: true,
           freshness: contextPack.freshness,
           sources: contextPack.sourcesCount,
         }
-      : { applied: false, reason: liveContextReason };
+      : {
+          applied: false,
+          reason: liveContextReason,
+          ...(debugInfo ? { debug: debugInfo } : {}),
+        };
 
     const battleResponse = {
       ...(battle as Record<string, unknown>),
