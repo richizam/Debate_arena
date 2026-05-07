@@ -58,7 +58,7 @@ function extractText(data: GrokResponse): { text: string; annotationCount: numbe
 const CACHE_KEY_PREFIX = "lc:v1:";
 const SUCCESS_TTL_SECONDS = 6 * 60 * 60;
 const NEGATIVE_TTL_SECONDS = 24 * 60 * 60;
-const FETCH_TIMEOUT_MS = 15000;
+const FETCH_TIMEOUT_MS = 22000;
 const MAX_BUCKET_ITEMS = 6;
 const MAX_ITEM_LENGTH = 280;
 
