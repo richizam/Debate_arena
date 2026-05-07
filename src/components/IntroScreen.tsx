@@ -3,6 +3,7 @@ import type { Language } from "../types/battle";
 import { LANGUAGES, translations } from "../data/i18n";
 import { track } from "../utils/analytics";
 import type { SuggestedBattle } from "../utils/suggestions";
+import Flag from "./Flag";
 import PixelButton from "./PixelButton";
 import SuggestionRow from "./SuggestionRow";
 
@@ -102,7 +103,7 @@ export default function IntroScreen({ onStart, isLoading }: IntroScreenProps) {
             title={l.label}
             aria-label={l.label}
           >
-            <span className="lang-flag">{l.flag}</span>
+            <Flag code={l.code} className="lang-flag" />
             <span className="lang-label">{l.label}</span>
           </button>
         ))}

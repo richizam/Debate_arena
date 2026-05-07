@@ -72,8 +72,12 @@
 }
 
 .lang-flag {
-  font-size: 16px;
-  line-height: 1;
+  width: 18px;
+  height: 12px;
+  display: block;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #04040f;
 }
 
 .lang-label {
