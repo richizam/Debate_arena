@@ -35,7 +35,7 @@ interface GrokResponse {
 const CACHE_KEY_PREFIX = "lc:v1:";
 const SUCCESS_TTL_SECONDS = 6 * 60 * 60;
 const NEGATIVE_TTL_SECONDS = 24 * 60 * 60;
-const FETCH_TIMEOUT_MS = 3000;
+const FETCH_TIMEOUT_MS = 9000;
 const MAX_BUCKET_ITEMS = 6;
 const MAX_ITEM_LENGTH = 280;
 
