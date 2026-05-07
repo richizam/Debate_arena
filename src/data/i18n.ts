@@ -100,6 +100,10 @@ export interface Translations {
   proLiveLoading: string;
   premiumCreditsRemaining: string;
   aiDisclaimer: string;
+  currentPlanLabel: string;
+  upgradeAvailableLabel: string;
+  noMoreUpgrades: string;
+  currentPlanBadge: string;
 }
 
 const baseEnglish: Translations = {
@@ -186,6 +190,10 @@ const baseEnglish: Translations = {
   proLiveLoading: "Researching X and the live web in real time… this takes 20–30 seconds for the deepest context.",
   premiumCreditsRemaining: "Pro Credits",
   aiDisclaimer: "Debates are AI-generated and may contain errors, fabricated quotes, or fictional details. For entertainment only.",
+  currentPlanLabel: "Your plan",
+  upgradeAvailableLabel: "Upgrade options",
+  noMoreUpgrades: "You're on the top plan. Use Manage Plan below to cancel or change billing.",
+  currentPlanBadge: "CURRENT",
 };
 
 export const translations: Record<Language, Translations> = {
@@ -252,6 +260,10 @@ export const translations: Record<Language, Translations> = {
     proLiveLoading: "Investigando X y la web en tiempo real... toma 20-30 segundos para el contexto mas profundo.",
     premiumCreditsRemaining: "Creditos Pro",
     aiDisclaimer: "Los debates son generados por IA y pueden contener errores, citas inventadas o detalles ficticios. Solo para entretenimiento.",
+    currentPlanLabel: "Tu plan",
+    upgradeAvailableLabel: "Opciones de mejora",
+    noMoreUpgrades: "Ya tienes el plan superior. Usa Gestionar Plan abajo para cancelar o cambiar la facturacion.",
+    currentPlanBadge: "ACTUAL",
     limitCountdownLabel: "Tu proximo debate gratis en",
     limitShareCta: "Trae a un amigo, vuelve a pelear",
     limitShareLabel: "COMPARTIR EN X",

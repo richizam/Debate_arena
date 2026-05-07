@@ -161,32 +161,70 @@ export default function BillingPanel({
 
           {billingError && <p className="billing-panel__error">{billingError}</p>}
 
-          <div className="billing-panel__plans">
-            {BILLING_PLANS.map((plan) => (
-              <button
-                key={plan.code}
-                type="button"
-                className={`billing-plan${
-                  billingStatus?.currentPlanCode === plan.code ? " billing-plan--active" : ""
-                }`}
-                disabled={Boolean(checkoutLoadingPlan) || portalLoading}
-                onClick={() => onBuyPlan(plan.code)}
-              >
-                <span className="billing-plan__name">{plan.label}</span>
-                <span className="billing-plan__price">{plan.price}</span>
-                <span className="billing-plan__pro-line">{plan.proLine}</span>
-                <span className="billing-plan__action">
-                  {checkoutLoadingPlan === plan.code ? t.loadingBilling : t.subscribeNow}
-                </span>
-              </button>
-            ))}
-          </div>
+          {(() => {
+            const currentPlanIndex = billingStatus?.currentPlanCode
+              ? BILLING_PLANS.findIndex((p) => p.code === billingStatus.currentPlanCode)
+              : -1;
+            const isActiveSub = billingStatus?.subscriptionStatus === "active";
+            const showCurrentPlanBanner = isActiveSub && currentPlanIndex >= 0;
+            const visiblePlans =
+              showCurrentPlanBanner
+                ? BILLING_PLANS.slice(currentPlanIndex + 1)
+                : BILLING_PLANS;
+            const anyActionInFlight = Boolean(checkoutLoadingPlan) || portalLoading;
+            const currentPlan =
+              currentPlanIndex >= 0 ? BILLING_PLANS[currentPlanIndex] : null;
+
+            return (
+              <>
+                {showCurrentPlanBanner && currentPlan ? (
+                  <div className="billing-current-plan">
+                    <span className="billing-current-plan__label">{t.currentPlanLabel}</span>
+                    <div className="billing-current-plan__card">
+                      <span className="billing-current-plan__badge">{t.currentPlanBadge}</span>
+                      <span className="billing-current-plan__name">{currentPlan.label}</span>
+                      <span className="billing-current-plan__price">{currentPlan.price}</span>
+                      <span className="billing-current-plan__pro-line">{currentPlan.proLine}</span>
+                    </div>
+                  </div>
+                ) : null}
+
+                {visiblePlans.length > 0 ? (
+                  <>
+                    {showCurrentPlanBanner ? (
+                      <p className="billing-panel__plans-heading">{t.upgradeAvailableLabel}</p>
+                    ) : null}
+                    <div className="billing-panel__plans">
+                      {visiblePlans.map((plan) => (
+                        <button
+                          key={plan.code}
+                          type="button"
+                          className="billing-plan"
+                          disabled={anyActionInFlight}
+                          onClick={() => onBuyPlan(plan.code)}
+                        >
+                          <span className="billing-plan__name">{plan.label}</span>
+                          <span className="billing-plan__price">{plan.price}</span>
+                          <span className="billing-plan__pro-line">{plan.proLine}</span>
+                          <span className="billing-plan__action">
+                            {checkoutLoadingPlan === plan.code ? t.loadingBilling : t.subscribeNow}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <p className="billing-panel__top-tier">{t.noMoreUpgrades}</p>
+                )}
+              </>
+            );
+          })()}
 
           <div className="billing-panel__actions">
             <PixelButton
               label={portalLoading ? t.loadingBilling : t.managePlan}
               onClick={onManagePlan}
-              disabled={portalLoading}
+              disabled={portalLoading || Boolean(checkoutLoadingPlan)}
             />
             <PixelButton
               label={t.signOut}
