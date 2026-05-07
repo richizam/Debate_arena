@@ -70,7 +70,12 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   let contextPack: ContextPack | null = null;
-  if (liveContext === true && context.env.XAI_API_KEY) {
+  let liveContextReason: string;
+  if (liveContext !== true) {
+    liveContextReason = "not_requested";
+  } else if (!context.env.XAI_API_KEY) {
+    liveContextReason = "xai_key_missing";
+  } else {
     try {
       contextPack = await getContextPack(context.env, {
         lang: language,
@@ -78,9 +83,11 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         fighterA: fighterAName,
         fighterB: fighterBName,
       });
+      liveContextReason = contextPack ? "applied" : "grok_returned_null";
     } catch (contextError) {
       console.warn("Live context fetch failed, falling back to vanilla flow:", contextError);
       contextPack = null;
+      liveContextReason = "grok_threw";
     }
   }
 
@@ -192,7 +199,7 @@ Respond with this EXACT JSON (no other text):
           freshness: contextPack.freshness,
           sources: contextPack.sourcesCount,
         }
-      : { applied: false };
+      : { applied: false, reason: liveContextReason };
 
     const battleResponse = {
       ...(battle as Record<string, unknown>),

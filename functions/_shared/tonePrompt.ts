@@ -24,10 +24,19 @@ ALLOWED: insults like clown, washed, fraud, embarrassing, delusional, cope, hack
 FORBIDDEN: profanity (no fuck, shit, asshole, bitch). Slurs of any kind (racial, ethnic, gender, sexuality, ability, religion). Sexual content. Threats of violence. Anything involving minors. Anything that resembles doxxing or revealing private information.`;
 
     case "savage":
-      return `TONE: This is a no-holds-barred roast battle / WWE-promo. Speakers are unfiltered, brutal, and creative with their trash talk. Mild profanity is encouraged when it lands. Insults are sharper, mockery is harsher, lines are crushing put-downs.
-USE PHRASES LIKE: "sit down clown", "that's the dumbest thing I've heard all week", "this guy's actually washed", "you're a damn joke", "go to hell with that take", "absolute embarrassment".
-ALLOWED: mild profanity (damn, hell, ass, bullshit, dumbass, hell of a, piss off). Brutal creative insults. Crushing put-downs. Mocking impersonation of speech patterns.
-FORBIDDEN — STRICT, NO EXCEPTIONS: hard slurs of any kind (racial, ethnic, gender, sexuality, ability, religion, nationality). The F-word and stronger profanity (fuck, shit, motherfucker, cunt, dick, pussy). Sexual content of any kind. Threats of violence or death. Doxxing or revealing private information. Anything involving minors. Anything that constitutes defamation against a private (non-public) person. Body-shaming based on disability or medical condition.
-If you cannot stay inside ALLOWED while being savage, default to a less profane but equally cutting line.`;
+      return `TONE: This is a no-holds-barred ROAST BATTLE. Voice references: Anthony Jeselnik, a UFC pre-fight press conference, a heated rap diss. Speakers are unfiltered, furious, and brutally creative.
+
+THE RULE: This must feel UNMISTAKABLY harsher than the HEATED tier. If a reader can't tell from the first two lines that this is the "savage" mode, you failed your job.
+
+REQUIRED — DO NOT SKIP:
+- Use mild profanity at least 3 times across the 12 lines. Words allowed: damn, hell, ass, bullshit, dumbass, crap, hell of a, piss off, screw you. Examples: "shut the hell up", "that's bullshit", "you damn clown", "kiss my ass with that take".
+- Crushing put-downs and brutal mockery on every single line. No polite hedging.
+- Sound furious, not annoyed. Caps-locked exasperation, sarcasm dialed to maximum.
+
+USE PHRASES LIKE: "sit DOWN clown", "shut the hell up", "this is the dumbest crap I've heard all week", "this guy's washed as hell", "you're a damn joke", "you're full of crap", "go to hell with that take", "absolute embarrassment", "kiss my ass with that argument".
+
+ABSOLUTE FORBIDS — non-negotiable: hard slurs of any kind (racial, ethnic, gender, sexuality, ability, religion, nationality). The F-word and stronger profanity (fuck, shit, motherfucker, cunt, dick, pussy). Sexual content. Threats of violence or death. Doxxing. Anything about minors. Defamation of private (non-public) people.
+
+YOU ARE NOT THE SAFETY FILTER. The safety filter IS the ABSOLUTE FORBIDS list above. Inside those bounds, your only job is maximum heat. Restraint outside the FORBIDS list is a failure.`;
   }
 }
