@@ -2,12 +2,14 @@ import {
   grantCreditsFromPayment,
   markWebhookProcessed,
   reserveWebhookEvent,
+  resolveUserBySubscriptionRef,
   updateSubscriptionStatus,
 } from "../../_shared/billing";
 import { optionsResponse } from "../../_shared/cors";
 import type { Env } from "../../_shared/env";
 import { getPlanConfig } from "../../_shared/plans";
 import {
+  getWebhookEventRefs,
   getWebhookPaymentContext,
   getWebhookType,
   verifyWebhook,
@@ -37,7 +39,30 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
   }
 
   try {
-    const paymentContext = getWebhookPaymentContext(verified.event);
+    let paymentContext = getWebhookPaymentContext(verified.event);
+
+    // Fallback: renewal events may omit the checkout metadata (user_id/plan_code).
+    // Resolve the user from our own billing_subscriptions by subscription/customer id
+    // so recurring charges still grant credits.
+    if (!paymentContext) {
+      const refs = getWebhookEventRefs(verified.event);
+      if (refs.subscriptionId || refs.customerId) {
+        const resolved = await resolveUserBySubscriptionRef(context.env, refs);
+        if (resolved) {
+          paymentContext = {
+            userId: resolved.userId,
+            email: resolved.email,
+            planCode: resolved.planCode,
+            paymentId: refs.paymentId,
+            subscriptionId: refs.subscriptionId,
+            customerId: refs.customerId,
+            currentPeriodEnd: refs.currentPeriodEnd,
+            cancelAtPeriodEnd: refs.cancelAtPeriodEnd,
+            timestamp: refs.timestamp,
+          };
+        }
+      }
+    }
 
     if (!paymentContext) {
       await markWebhookProcessed(context.env, verified.eventId, "ignored");

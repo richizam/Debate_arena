@@ -1,7 +1,7 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import type { Env } from "./env";
 import { getSupabaseAdmin } from "./supabase";
-import type { PlanCode } from "./plans";
+import { isPlanCode, type PlanCode } from "./plans";
 
 interface CreditWallet {
   user_id: string;
@@ -325,6 +325,55 @@ export async function consumeBattleCredit(
     currentPlanCode: data.current_plan_code,
     subscriptionStatus: subscription?.status ?? null,
     cancelAtPeriodEnd: subscription?.cancel_at_period_end ?? false,
+  };
+}
+
+/**
+ * Fallback used when a webhook payload lacks checkout metadata (e.g. renewal
+ * payment.succeeded events). Resolves the owning user + plan from our own
+ * billing_subscriptions row, matched by Dodo subscription id (preferred) or
+ * customer id. Returns null if we have no record to attribute the event to.
+ */
+export async function resolveUserBySubscriptionRef(
+  env: Env,
+  refs: { subscriptionId: string | null; customerId: string | null }
+): Promise<{ userId: string; email: string; planCode: PlanCode } | null> {
+  const admin = getSupabaseAdmin(env);
+
+  let sub: { user_id: string; plan_code: string } | null = null;
+
+  if (refs.subscriptionId) {
+    const { data } = await admin
+      .from("billing_subscriptions")
+      .select("user_id, plan_code")
+      .eq("dodo_subscription_id", refs.subscriptionId)
+      .maybeSingle<{ user_id: string; plan_code: string }>();
+    sub = data ?? null;
+  }
+
+  if (!sub && refs.customerId) {
+    const { data } = await admin
+      .from("billing_subscriptions")
+      .select("user_id, plan_code")
+      .eq("dodo_customer_id", refs.customerId)
+      .maybeSingle<{ user_id: string; plan_code: string }>();
+    sub = data ?? null;
+  }
+
+  if (!sub || !isPlanCode(sub.plan_code)) {
+    return null;
+  }
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("email")
+    .eq("user_id", sub.user_id)
+    .maybeSingle<{ email: string }>();
+
+  return {
+    userId: sub.user_id,
+    email: profile?.email ?? "",
+    planCode: sub.plan_code,
   };
 }
 

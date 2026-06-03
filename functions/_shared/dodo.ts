@@ -18,10 +18,22 @@ interface DodoWebhookEvent {
   data?: Record<string, unknown>;
 }
 
-interface DodoPaymentContext {
+export interface DodoPaymentContext {
   userId: string;
   email: string;
   planCode: PlanCode;
+  paymentId: string | null;
+  subscriptionId: string | null;
+  customerId: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  timestamp: string;
+}
+
+// Best-effort references pulled from any subscription/payment event, even when
+// the checkout metadata (user_id/plan_code/email) is absent — e.g. on renewal
+// payment.succeeded events. Used to resolve the user from our own DB as a fallback.
+export interface DodoEventRefs {
   paymentId: string | null;
   subscriptionId: string | null;
   customerId: string | null;
@@ -152,9 +164,14 @@ export async function createPortalSession(
   const returnUrl =
     env.DODO_PORTAL_RETURN_URL ?? `${input.origin.replace(/\/+$/, "")}/account`;
 
-  return dodoRequest<DodoPortalResponse>(env, `/customers/${input.customerId}/portal/session`, {
+  // Dodo's endpoint is /customer-portal/session (not /portal/session), and
+  // return_url is a query param, not a body field. The body is empty.
+  const path = `/customers/${input.customerId}/customer-portal/session?return_url=${encodeURIComponent(
+    returnUrl
+  )}`;
+
+  return dodoRequest<DodoPortalResponse>(env, path, {
     method: "POST",
-    body: JSON.stringify({ return_url: returnUrl }),
   });
 }
 
@@ -204,7 +221,32 @@ export function getWebhookPaymentContext(event: DodoWebhookEvent): DodoPaymentCo
     planCode,
     paymentId: asString(data.payment_id) ?? asString(data.id),
     subscriptionId: asString(data.subscription_id) ?? asString(subscription?.id),
-    customerId: asString(data.customer_id) ?? asString(customer?.id),
+    customerId:
+      asString(data.customer_id) ??
+      asString(customer?.customer_id) ??
+      asString(customer?.id),
+    currentPeriodEnd:
+      asString(data.current_period_end) ??
+      asString(subscription?.current_period_end) ??
+      null,
+    cancelAtPeriodEnd:
+      asBoolean(data.cancel_at_period_end) || asBoolean(subscription?.cancel_at_period_end),
+    timestamp: asString(event.timestamp) ?? new Date().toISOString(),
+  };
+}
+
+export function getWebhookEventRefs(event: DodoWebhookEvent): DodoEventRefs {
+  const data = asRecord(event.data) ?? {};
+  const subscription = asRecord(data.subscription);
+  const customer = asRecord(data.customer);
+
+  return {
+    paymentId: asString(data.payment_id) ?? asString(data.id),
+    subscriptionId: asString(data.subscription_id) ?? asString(subscription?.id),
+    customerId:
+      asString(data.customer_id) ??
+      asString(customer?.customer_id) ??
+      asString(customer?.id),
     currentPeriodEnd:
       asString(data.current_period_end) ??
       asString(subscription?.current_period_end) ??

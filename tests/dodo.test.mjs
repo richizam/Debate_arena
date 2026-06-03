@@ -45,11 +45,11 @@ test("createCheckoutSession defaults the return URL to /account", async () => {
   assert.equal(requestBody.return_url, "https://debatearena.example.com/account");
 });
 
-test("createPortalSession defaults the return URL to /account", async () => {
-  let requestBody = null;
+test("createPortalSession hits the customer-portal endpoint with return_url query", async () => {
+  let requestUrl = null;
 
-  global.fetch = async (_url, init) => {
-    requestBody = JSON.parse(init.body);
+  global.fetch = async (url, _init) => {
+    requestUrl = url;
     return jsonResponse({
       link: "https://portal.example.com",
     });
@@ -66,7 +66,13 @@ test("createPortalSession defaults the return URL to /account", async () => {
     }
   );
 
-  assert.equal(requestBody.return_url, "https://debatearena.example.com/account");
+  const parsed = new URL(requestUrl);
+  assert.equal(parsed.origin, "https://payments.example.com");
+  assert.equal(parsed.pathname, "/customers/cus_123/customer-portal/session");
+  assert.equal(
+    parsed.searchParams.get("return_url"),
+    "https://debatearena.example.com/account"
+  );
 });
 
 afterEach(() => {
