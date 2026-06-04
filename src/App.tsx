@@ -10,7 +10,7 @@ import { getApiUrl } from "./utils/api";
 import { hasUsedDailyDebate, markDailyDebateUsed } from "./utils/dailyLimit";
 import { consumeShareBonus } from "./utils/shareBonus";
 import { hasSupabaseAuthConfig, supabase } from "./utils/supabase";
-import { initBackgroundMusic } from "./utils/audio";
+import { initBackgroundMusic, setMusicTheme } from "./utils/audio";
 
 import IntroScreen from "./components/IntroScreen";
 import AuthPage from "./components/AuthPage";
@@ -141,6 +141,11 @@ export default function App() {
   useEffect(() => {
     initBackgroundMusic();
   }, []);
+
+  useEffect(() => {
+    const tense = phase === "vs" || phase === "debate" || phase === "judge";
+    setMusicTheme(tense ? "tense" : "chill");
+  }, [phase]);
 
   useEffect(() => {
     if (typeof window === "undefined") {

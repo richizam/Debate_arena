@@ -124,42 +124,92 @@ export function playSound(name: "gavel"): void {
 // matching the procedural approach used for sound effects (no audio assets).
 // ---------------------------------------------------------------------------
 
-const MUSIC_VOLUME = 0.07;
-const STEP_SECONDS = 0.3; // eighth note @ ~100 BPM
 const LOOKAHEAD_MS = 25;
 const SCHEDULE_AHEAD = 0.12;
 
-// Four-bar minor progression (Am - F - C - G), eight eighth-notes per bar.
-// Each bar: a sustained bass root plus a four-note arpeggio that repeats twice.
-const BASS_BY_BAR = [110.0, 87.31, 130.81, 98.0]; // A2, F2, C3, G2
-const ARP_BY_BAR = [
-  [220.0, 261.63, 329.63, 261.63], // Am: A3 C4 E4 C4
-  [174.61, 220.0, 261.63, 220.0], // F:  F3 A3 C4 A3
-  [261.63, 329.63, 392.0, 329.63], // C:  C4 E4 G4 E4
-  [196.0, 246.94, 293.66, 246.94], // G:  G3 B3 D4 B3
-];
-const TOTAL_STEPS = BASS_BY_BAR.length * 8;
+export type MusicTheme = "chill" | "tense";
+
+interface ThemeConfig {
+  volume: number; // master gain for this theme
+  stepSeconds: number; // eighth-note duration (lower = faster)
+  filterFreq: number; // lowpass cutoff (higher = more edge)
+  arpType: OscillatorType;
+  arpDuration: number;
+  arpPeak: number;
+  bassType: OscillatorType;
+  bassDuration: number;
+  bassPeak: number;
+  bassSteps: number[]; // positions within a bar (0-7) that trigger the bass
+  bassByBar: number[];
+  arpByBar: number[][];
+}
+
+const THEMES: Record<MusicTheme, ThemeConfig> = {
+  // Lobby / main screen — calm minor progression Am - F - C - G.
+  chill: {
+    volume: 0.13,
+    stepSeconds: 0.3, // ~100 BPM
+    filterFreq: 2000,
+    arpType: "triangle",
+    arpDuration: 0.26,
+    arpPeak: 0.6,
+    bassType: "triangle",
+    bassDuration: 0.55,
+    bassPeak: 0.9,
+    bassSteps: [0, 4],
+    bassByBar: [110.0, 87.31, 130.81, 98.0], // A2, F2, C3, G2
+    arpByBar: [
+      [220.0, 261.63, 329.63, 261.63], // Am: A3 C4 E4 C4
+      [174.61, 220.0, 261.63, 220.0], // F:  F3 A3 C4 A3
+      [261.63, 329.63, 392.0, 329.63], // C:  C4 E4 G4 E4
+      [196.0, 246.94, 293.66, 246.94], // G:  G3 B3 D4 B3
+    ],
+  },
+  // Debate / battle — faster, driving, dramatic descent Am - G - F - E.
+  tense: {
+    volume: 0.15,
+    stepSeconds: 0.2, // ~150 BPM
+    filterFreq: 2600,
+    arpType: "square",
+    arpDuration: 0.16,
+    arpPeak: 0.42,
+    bassType: "sawtooth",
+    bassDuration: 0.22,
+    bassPeak: 0.7,
+    bassSteps: [0, 2, 4, 6], // quarter-note pulse for urgency
+    bassByBar: [110.0, 98.0, 87.31, 82.41], // A2, G2, F2, E2
+    arpByBar: [
+      [220.0, 261.63, 329.63, 261.63], // Am: A3 C4 E4 C4
+      [196.0, 246.94, 293.66, 246.94], // G:  G3 B3 D4 B3
+      [174.61, 220.0, 261.63, 220.0], // F:  F3 A3 C4 A3
+      [164.81, 207.65, 246.94, 207.65], // E:  E3 G#3 B3 G#3
+    ],
+  },
+};
 
 let musicTimer: ReturnType<typeof setInterval> | null = null;
 let musicGain: GainNode | null = null;
+let musicFilter: BiquadFilterNode | null = null;
 let nextNoteTime = 0;
 let stepIndex = 0;
 let musicInitialized = false;
 let audioUnlocked = false;
+let currentTheme: MusicTheme = "chill";
 
-function getMusicGain(ctx: AudioContext): GainNode {
-  if (musicGain) {
+function ensureMusicNodes(ctx: AudioContext): GainNode {
+  if (musicGain && musicFilter) {
     return musicGain;
   }
   const filter = ctx.createBiquadFilter();
   filter.type = "lowpass";
-  filter.frequency.value = 2000;
+  filter.frequency.value = THEMES[currentTheme].filterFreq;
 
   const gain = ctx.createGain();
-  gain.gain.value = MUSIC_VOLUME;
+  gain.gain.value = THEMES[currentTheme].volume;
   gain.connect(filter);
   filter.connect(ctx.destination);
   musicGain = gain;
+  musicFilter = filter;
   return gain;
 }
 
@@ -168,10 +218,11 @@ function playMusicNote(
   time: number,
   freq: number,
   duration: number,
-  peak: number
+  peak: number,
+  type: OscillatorType
 ): void {
   const osc = ctx.createOscillator();
-  osc.type = "triangle";
+  osc.type = type;
   osc.frequency.setValueAtTime(freq, time);
 
   const env = ctx.createGain();
@@ -180,21 +231,22 @@ function playMusicNote(
   env.gain.exponentialRampToValueAtTime(0.0001, time + duration);
 
   osc.connect(env);
-  env.connect(getMusicGain(ctx));
+  env.connect(ensureMusicNodes(ctx));
   osc.start(time);
   osc.stop(time + duration + 0.02);
 }
 
 function scheduleStep(ctx: AudioContext, step: number, time: number): void {
-  const bar = Math.floor(step / 8) % BASS_BY_BAR.length;
+  const theme = THEMES[currentTheme];
+  const bar = Math.floor(step / 8) % theme.bassByBar.length;
   const pos = step % 8;
 
   // Arpeggio pluck on every eighth note.
-  playMusicNote(ctx, time, ARP_BY_BAR[bar][pos % 4], 0.26, 0.6);
+  playMusicNote(ctx, time, theme.arpByBar[bar][pos % 4], theme.arpDuration, theme.arpPeak, theme.arpType);
 
-  // Bass on the down-beat and half-bar.
-  if (pos === 0 || pos === 4) {
-    playMusicNote(ctx, time, BASS_BY_BAR[bar], 0.55, 0.9);
+  // Bass on the theme's beat pattern.
+  if (theme.bassSteps.includes(pos)) {
+    playMusicNote(ctx, time, theme.bassByBar[bar], theme.bassDuration, theme.bassPeak, theme.bassType);
   }
 }
 
@@ -203,10 +255,32 @@ function musicScheduler(): void {
   if (!ctx) {
     return;
   }
+  const stepSeconds = THEMES[currentTheme].stepSeconds;
+  const totalSteps = THEMES[currentTheme].bassByBar.length * 8;
   while (nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD) {
     scheduleStep(ctx, stepIndex, nextNoteTime);
-    nextNoteTime += STEP_SECONDS;
-    stepIndex = (stepIndex + 1) % TOTAL_STEPS;
+    nextNoteTime += stepSeconds;
+    stepIndex = (stepIndex + 1) % totalSteps;
+  }
+}
+
+/** Switch the active music theme; restarts the loop seamlessly if playing. */
+export function setMusicTheme(theme: MusicTheme): void {
+  if (theme === currentTheme) {
+    return;
+  }
+  currentTheme = theme;
+
+  const ctx = cachedContext;
+  if (ctx && musicGain && musicFilter) {
+    musicGain.gain.setTargetAtTime(THEMES[theme].volume, ctx.currentTime, 0.08);
+    musicFilter.frequency.setTargetAtTime(THEMES[theme].filterFreq, ctx.currentTime, 0.08);
+  }
+
+  // Reset the sequence so the new progression starts from its first bar.
+  if (musicTimer !== null && ctx) {
+    stepIndex = 0;
+    nextNoteTime = ctx.currentTime + 0.05;
   }
 }
 
@@ -218,9 +292,9 @@ export function startMusic(): void {
   if (!ctx) {
     return;
   }
-  const gain = getMusicGain(ctx);
+  const gain = ensureMusicNodes(ctx);
   gain.gain.cancelScheduledValues(ctx.currentTime);
-  gain.gain.setValueAtTime(MUSIC_VOLUME, ctx.currentTime);
+  gain.gain.setValueAtTime(THEMES[currentTheme].volume, ctx.currentTime);
   nextNoteTime = ctx.currentTime + 0.1;
   stepIndex = 0;
   musicScheduler();
