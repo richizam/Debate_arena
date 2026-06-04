@@ -10,6 +10,7 @@ import { getApiUrl } from "./utils/api";
 import { hasUsedDailyDebate, markDailyDebateUsed } from "./utils/dailyLimit";
 import { consumeShareBonus } from "./utils/shareBonus";
 import { hasSupabaseAuthConfig, supabase } from "./utils/supabase";
+import { initBackgroundMusic } from "./utils/audio";
 
 import IntroScreen from "./components/IntroScreen";
 import AuthPage from "./components/AuthPage";
@@ -135,6 +136,10 @@ export default function App() {
 
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  useEffect(() => {
+    initBackgroundMusic();
   }, []);
 
   useEffect(() => {

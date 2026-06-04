@@ -118,3 +118,156 @@ export function playSound(name: "gavel"): void {
     // never let audio break the UI
   }
 }
+
+// ---------------------------------------------------------------------------
+// Background music — a looping chiptune bed generated entirely with Web Audio,
+// matching the procedural approach used for sound effects (no audio assets).
+// ---------------------------------------------------------------------------
+
+const MUSIC_VOLUME = 0.07;
+const STEP_SECONDS = 0.3; // eighth note @ ~100 BPM
+const LOOKAHEAD_MS = 25;
+const SCHEDULE_AHEAD = 0.12;
+
+// Four-bar minor progression (Am - F - C - G), eight eighth-notes per bar.
+// Each bar: a sustained bass root plus a four-note arpeggio that repeats twice.
+const BASS_BY_BAR = [110.0, 87.31, 130.81, 98.0]; // A2, F2, C3, G2
+const ARP_BY_BAR = [
+  [220.0, 261.63, 329.63, 261.63], // Am: A3 C4 E4 C4
+  [174.61, 220.0, 261.63, 220.0], // F:  F3 A3 C4 A3
+  [261.63, 329.63, 392.0, 329.63], // C:  C4 E4 G4 E4
+  [196.0, 246.94, 293.66, 246.94], // G:  G3 B3 D4 B3
+];
+const TOTAL_STEPS = BASS_BY_BAR.length * 8;
+
+let musicTimer: ReturnType<typeof setInterval> | null = null;
+let musicGain: GainNode | null = null;
+let nextNoteTime = 0;
+let stepIndex = 0;
+let musicInitialized = false;
+let audioUnlocked = false;
+
+function getMusicGain(ctx: AudioContext): GainNode {
+  if (musicGain) {
+    return musicGain;
+  }
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 2000;
+
+  const gain = ctx.createGain();
+  gain.gain.value = MUSIC_VOLUME;
+  gain.connect(filter);
+  filter.connect(ctx.destination);
+  musicGain = gain;
+  return gain;
+}
+
+function playMusicNote(
+  ctx: AudioContext,
+  time: number,
+  freq: number,
+  duration: number,
+  peak: number
+): void {
+  const osc = ctx.createOscillator();
+  osc.type = "triangle";
+  osc.frequency.setValueAtTime(freq, time);
+
+  const env = ctx.createGain();
+  env.gain.setValueAtTime(0.0001, time);
+  env.gain.exponentialRampToValueAtTime(peak, time + 0.012);
+  env.gain.exponentialRampToValueAtTime(0.0001, time + duration);
+
+  osc.connect(env);
+  env.connect(getMusicGain(ctx));
+  osc.start(time);
+  osc.stop(time + duration + 0.02);
+}
+
+function scheduleStep(ctx: AudioContext, step: number, time: number): void {
+  const bar = Math.floor(step / 8) % BASS_BY_BAR.length;
+  const pos = step % 8;
+
+  // Arpeggio pluck on every eighth note.
+  playMusicNote(ctx, time, ARP_BY_BAR[bar][pos % 4], 0.26, 0.6);
+
+  // Bass on the down-beat and half-bar.
+  if (pos === 0 || pos === 4) {
+    playMusicNote(ctx, time, BASS_BY_BAR[bar], 0.55, 0.9);
+  }
+}
+
+function musicScheduler(): void {
+  const ctx = getContext();
+  if (!ctx) {
+    return;
+  }
+  while (nextNoteTime < ctx.currentTime + SCHEDULE_AHEAD) {
+    scheduleStep(ctx, stepIndex, nextNoteTime);
+    nextNoteTime += STEP_SECONDS;
+    stepIndex = (stepIndex + 1) % TOTAL_STEPS;
+  }
+}
+
+export function startMusic(): void {
+  if (musicTimer !== null || isMuted()) {
+    return;
+  }
+  const ctx = getContext();
+  if (!ctx) {
+    return;
+  }
+  const gain = getMusicGain(ctx);
+  gain.gain.cancelScheduledValues(ctx.currentTime);
+  gain.gain.setValueAtTime(MUSIC_VOLUME, ctx.currentTime);
+  nextNoteTime = ctx.currentTime + 0.1;
+  stepIndex = 0;
+  musicScheduler();
+  musicTimer = setInterval(musicScheduler, LOOKAHEAD_MS);
+}
+
+export function stopMusic(): void {
+  if (musicTimer !== null) {
+    clearInterval(musicTimer);
+    musicTimer = null;
+  }
+  const ctx = cachedContext;
+  if (ctx && musicGain) {
+    // Fade out so already-scheduled notes don't click off.
+    musicGain.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.05);
+  }
+}
+
+/**
+ * Wire up background music once. Browsers block autoplay until a user gesture,
+ * so we unlock on the first interaction. Honors the existing mute preference
+ * and reacts to the mute toggle.
+ */
+export function initBackgroundMusic(): void {
+  if (musicInitialized || typeof window === "undefined") {
+    return;
+  }
+  musicInitialized = true;
+
+  subscribeMuted((muted) => {
+    if (muted) {
+      stopMusic();
+    } else if (audioUnlocked) {
+      startMusic();
+    }
+  });
+
+  const unlock = () => {
+    audioUnlocked = true;
+    getContext(); // create + resume within the gesture
+    startMusic();
+    window.removeEventListener("pointerdown", unlock);
+    window.removeEventListener("keydown", unlock);
+    window.removeEventListener("touchstart", unlock);
+  };
+
+  window.addEventListener("pointerdown", unlock);
+  window.addEventListener("keydown", unlock);
+  window.addEventListener("touchstart", unlock);
+}
